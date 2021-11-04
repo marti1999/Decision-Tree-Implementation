@@ -45,7 +45,21 @@ def createDiscreteValues(df):
 
 def datasetEntropy(df):
 
-    print("hello")
+    """
+        for each unique value in target(hasCancer):
+            p = probability of current value
+            totalEntropy = totalEntropy + p*log_2(p)
+    """
+
+    entropy = 0
+    uniqueValues = df.target.unique()
+    for v in uniqueValues:
+        p = df.target.value_counts()[v]/len(df.target)
+        entropy += p*np.log2(p)
+
+    entropy = entropy * -1
+    print(entropy)
+    return entropy
 
 
 def main():
