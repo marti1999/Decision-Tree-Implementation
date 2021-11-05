@@ -4,6 +4,37 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+class node(object):
+    def __init__(self, nodosHijos, nodoPadre, numeroAtribut, gini, valor, entropiaTotal, idNode):
+        self.nodesFills = nodosHijos
+        self.nodePare = nodoPadre
+        self.numAtribut = numeroAtribut
+        self.gini = gini
+        self.valorAtrPadre = valor
+        self.entropiaPadre = entropiaTotal
+        self.idNodo = idNode
+
+    def __chooseBestAtribute(self):
+        pass
+
+    def __chooseBestAtributeAC45(self):
+        pass
+
+    def __fixAtributesChildren(self):
+        pass
+
+    def __ifEnd(self):
+       pass
+
+    def __sampleChildren(self):
+       pass
+
+    def fit(self):
+        pass
+
+    def predict(self):
+        pass
+
 def main():
     df = pd.read_csv("heart.csv")
     print(df.describe())
@@ -16,7 +47,7 @@ def main():
     # plt.show()
     # df.hist(figsize=(8, 8))
     # plt.show()
-
+    print(df.columns)
     df['age_qcut'] = pd.qcut(df['age'], 10)
     df['age_cut'] = pd.cut(df['age'], 10)
     df['trestbps_cut'] = pd.cut(df['trestbps'], 10)
