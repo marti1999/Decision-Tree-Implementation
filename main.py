@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+
+# numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
+eps = np.finfo(float).eps
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -46,9 +50,9 @@ def createDiscreteValues(df):
 def datasetEntropy(df):
 
     """
-        for each unique value in target(hasCancer):
-            p = probability of current value
-            totalEntropy = totalEntropy + p*log_2(p)
+        per cada valor únic al target (hasCancer):
+            p = probabilitat del valor únic
+            totalEntropy = totalentropy + p*log_2(p)
     """
 
     entropy = 0
@@ -61,6 +65,26 @@ def datasetEntropy(df):
     print(entropy)
     return entropy
 
+def attributeEntropy(df, attribute):
+    results = df.target.unique()
+    attrValues = df[attribute].unique()
+
+    attrEntropy = 0
+    for value in attrValues:
+        entropyEachValue = 0
+        for result in results:
+            num = len(df[attribute][df[attribute] == value][df.target == result])
+            den = len(df[attribute][df[attribute] == value])
+            innerFraction = num/(den+eps)
+            entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
+        outerFraction = den/len(df)
+        attrEntropy += -outerFraction * entropyEachValue
+
+    return abs(attrEntropy)
+
+def gain(eDf, eAttr):
+    return eDf-eAttr
+
 
 def main():
 
@@ -69,12 +93,15 @@ def main():
     analysingData(df)
 
     dfDiscrete = createDiscreteValues(df)
+    dfEntropy = datasetEntropy(dfDiscrete)
 
-    datasetEntropy(dfDiscrete)
+    a = dfDiscrete.keys().tolist()
+    a.remove('target')
+    entropyDictionary = {k : attributeEntropy(dfDiscrete, k) for k in a}
+    print(entropyDictionary)
 
-
-
-
+    gainDictionary = {k:gain(dfEntropy, entropyDictionary[k]) for k in entropyDictionary}
+    print(gainDictionary)
 
 
 if __name__ == "__main__":
