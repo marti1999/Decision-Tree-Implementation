@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import pprint
+from sklearn.metrics import accuracy_score,  precision_score, recall_score
 
 # numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 from sklearn.model_selection import train_test_split
@@ -20,6 +21,7 @@ class Node:
 class DecisionTree:
     def __init__(self):
         self.tree = None
+        self.predictions = []
 
     def datasetEntropy(self, df):
 
@@ -109,6 +111,32 @@ class DecisionTree:
         self.tree = self.createTree(df)
 
 
+    def lookupOutput(self, row, subTree=None):
+
+        if not isinstance(subTree, dict):
+            self.predictions.append(subTree)
+            return
+
+        #TODO esborrar for, realment només hi ha un valor al diccionari.
+        for key, value in subTree.items():
+            rowValue = getattr(row, key)
+            if rowValue in value:
+                self.lookupOutput(row, value[rowValue])
+            else:
+                self.predictions.append(2)
+
+
+
+
+
+    def predict(self, df):
+        self.predictions = []
+        # print(row.age_cut)
+
+        for row in df.itertuples():
+            self.lookupOutput(row, self.tree)
+
+        return self.predictions
 
 
 def analysingData(df):
@@ -118,10 +146,10 @@ def analysingData(df):
     for name in df.columns:
         print(len(pd.unique(df[name])), name, " unique values: ")
 
-    # sns.boxplot(data=df)
-    # plt.show()
-    # df.hist(figsize=(8, 8))
-    # plt.show()
+    sns.boxplot(data=df)
+    plt.show()
+    df.hist(figsize=(8, 8))
+    plt.show()
 
 def createDiscreteValues(df):
     # df['age_qcut'] = pd.qcut(df['age'], 10)
@@ -137,9 +165,9 @@ def createDiscreteValues(df):
 
     dfDiscrete = df.drop(columns=['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
 
-    print("\n\n\n")
-    for name in dfDiscrete.columns:
-        print(len(pd.unique(dfDiscrete[name])), name, " unique values: ")
+    #print("\n\n\n")
+    #for name in dfDiscrete.columns:
+        #print(len(pd.unique(dfDiscrete[name])), name, " unique values: ")
 
     return dfDiscrete
 
@@ -151,7 +179,7 @@ def main():
 
     df = pd.read_csv("heart.csv")
 
-    analysingData(df)
+    #analysingData(df)
 
     dfDiscrete = createDiscreteValues(df)
     # dfEntropy = datasetEntropy(dfDiscrete)
@@ -165,12 +193,23 @@ def main():
     # print(gainDictionary)
 
 
-    train, test = train_test_split (dfDiscrete, test_size=0.05, random_state=1845)
+    print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
+    totalAccuracy = 0
+    for i in range(0, 10):
+        train, test = train_test_split (dfDiscrete, test_size=0.20, random_state=np.random)
+        decisionTree = DecisionTree()
+        decisionTree.fit(train)
+        predictions = decisionTree.predict(test)
+        groundTruth = test['target'].tolist()
+        print("\n")
+        print(groundTruth)
+        print(predictions)
+        accuracy = accuracy_score(groundTruth, predictions)
+        totalAccuracy = totalAccuracy + accuracy
+        # print("Accuracy: ",accuracy)
+        # pprint.pprint(decisionTree.tree)
 
-
-    decisionTree = DecisionTree()
-    decisionTree.fit(train)
-    pprint.pprint(decisionTree.tree)
+    print("Mean accuracy: ", totalAccuracy/10)
 
 
 if __name__ == "__main__":
