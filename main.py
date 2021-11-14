@@ -2,6 +2,12 @@ import pandas as pd
 import numpy as np
 import pprint
 from sklearn.metrics import accuracy_score,  precision_score, recall_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
+from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
+import json
+
+
 
 # numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 from sklearn.model_selection import train_test_split
@@ -151,13 +157,13 @@ def analysingData(df):
     df.hist(figsize=(8, 8))
     plt.show()
 
-def createDiscreteValues(df):
+def createDiscreteValues(df, categoriesNumber):
     # df['age_qcut'] = pd.qcut(df['age'], 10)
-    df['age_cut'] = pd.cut(df['age'], 10)
-    df['trestbps_cut'] = pd.cut(df['trestbps'], 10)
-    df['chol_cut'] = pd.cut(df['chol'], 10)
-    df['thalach_cut'] = pd.cut(df['thalach'], 10)
-    df['oldpeak_cut'] = pd.cut(df['oldpeak'], 10)
+    df['age_cut'] = pd.cut(df['age'], categoriesNumber).cat.codes
+    df['trestbps_cut'] = pd.cut(df['trestbps'], categoriesNumber).cat.codes
+    df['chol_cut'] = pd.cut(df['chol'], categoriesNumber).cat.codes
+    df['thalach_cut'] = pd.cut(df['thalach'], categoriesNumber).cat.codes
+    df['oldpeak_cut'] = pd.cut(df['oldpeak'], categoriesNumber).cat.codes
 
     # print(df[['age', 'age_qcut', 'age_cut']].head(10))
     # print(df[['age_qcut']].value_counts())
@@ -181,7 +187,6 @@ def main():
 
     #analysingData(df)
 
-    dfDiscrete = createDiscreteValues(df)
     # dfEntropy = datasetEntropy(dfDiscrete)
     #
     # a = dfDiscrete.keys().tolist()
@@ -194,22 +199,42 @@ def main():
 
 
     print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
-    totalAccuracy = 0
-    for i in range(0, 10):
-        train, test = train_test_split (dfDiscrete, test_size=0.20, random_state=np.random)
-        decisionTree = DecisionTree()
-        decisionTree.fit(train)
-        predictions = decisionTree.predict(test)
-        groundTruth = test['target'].tolist()
-        print("\n")
-        print(groundTruth)
-        print(predictions)
-        accuracy = accuracy_score(groundTruth, predictions)
-        totalAccuracy = totalAccuracy + accuracy
-        # print("Accuracy: ",accuracy)
-        # pprint.pprint(decisionTree.tree)
+    nCategoriesDict = {}
+    for n in [4,6,7,8,9,10,11]:
+        totalAccuracy = 0
+        for i in range(0, 10):
+            dfDiscrete = createDiscreteValues(df, n)
+            train, test = train_test_split (dfDiscrete, test_size=0.2, random_state=np.random)
+            decisionTree = DecisionTree()
+            decisionTree.fit(train)
+            predictions = decisionTree.predict(test)
+            groundTruth = test['target'].tolist()
+            print("\n")
+            print(groundTruth)
+            print(predictions)
+            accuracy = accuracy_score(groundTruth, predictions)
+            totalAccuracy = totalAccuracy + accuracy
+            print("Accuracy: ",accuracy, " categories: ", n)
+            # pprint.pprint(decisionTree.tree)
+        nCategoriesDict[n] = totalAccuracy/10
+        # print("\nMean accuracy: ", totalAccuracy/10, " categories: ", n)
 
-    print("Mean accuracy: ", totalAccuracy/10)
+    print(json.dumps(nCategoriesDict, indent = 4))
+    # print(nCategoriesDict)
+
+
+    print("\n\n UTILITZANT EL DEL SKLEARN")
+    y = df["target"]
+    X = df.drop('target', axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=0)
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+    dt = DecisionTreeClassifier(criterion='entropy', random_state=0, max_depth=6)
+    dt.fit(X_train, y_train)
+    dt_predicted = dt.predict(X_test)
+    dt_acc_score = accuracy_score(y_test, dt_predicted)
+    print("Accuracy of DecisionTreeClassifier:", dt_acc_score , '\n')
 
 
 if __name__ == "__main__":
