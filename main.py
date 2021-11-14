@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
+import pprint
 
 # numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
+from sklearn.model_selection import train_test_split
+
 eps = np.finfo(float).eps
 
 import seaborn as sns
@@ -13,6 +16,97 @@ class Node:
         self.next = None
         self.parent = None
         self.childs = None
+
+class DecisionTree:
+    def __init__(self):
+        self.tree = None
+
+    def datasetEntropy(self, df):
+
+        """
+            per cada valor únic al target (hasCancer):
+                p = probabilitat del valor únic
+                totalEntropy = totalentropy + p*log_2(p)
+        """
+
+        entropy = 0
+        uniqueValues = df.target.unique()
+        for v in uniqueValues:
+            p = df.target.value_counts()[v] / len(df.target)
+            entropy += p * np.log2(p)
+
+        entropy = entropy * -1
+        # print(entropy)
+        return entropy
+
+    def attributeEntropy(self, df, attribute):
+        results = df.target.unique()
+        attrValues = df[attribute].unique()
+
+        attrEntropy = 0
+        for value in attrValues:
+            entropyEachValue = 0
+            for result in results:
+                num = len(df[attribute][df[attribute] == value][df.target == result])
+                den = len(df[attribute][df[attribute] == value])
+                innerFraction = num / (den + eps)
+                entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
+            outerFraction = den / len(df)
+            attrEntropy += -outerFraction * entropyEachValue
+
+        return abs(attrEntropy)
+
+    def gain(self, eDf, eAttr):
+        return eDf - eAttr
+
+    def findBestAttribute(self, df):
+        gains = []
+        a = df.keys().tolist()
+        a.remove('target')
+        for key in a:
+            gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, key))
+        return a[np.argmax(gains)]
+
+    def get_subtable(self, df, node, value):
+        # https://www.sharpsightlabs.com/blog/pandas-reset-index/
+        return df[df[node] == value].reset_index(drop=True)
+
+    def createTree(self, df, tree2=None):
+        features = df.keys().tolist()
+        features.remove('target')
+        Class = features
+
+        # Busquem l'atribut amb el màxim Gain d'informació
+        node = self.findBestAttribute(df)
+
+        # Agafem tots els valors únics de l'atribut amb més Gain
+        attValue = np.unique(df[node])
+
+        # Creem el diccionari que servirà d'arbre
+        if tree2 is None:
+            tree2 = {}
+            tree2[node] = {}
+
+        # L'arbre es construirà anant cridant la funció de forma recursiva.
+
+        # Cada valor portarà a un dels noos nodes (atributs)
+        for value in attValue:
+
+            # mirem si amb aquest valor tots els resultats són iguals
+            subtable = self.get_subtable(df, node, value)
+            clValue, counts = np.unique(subtable['target'], return_counts=True)
+
+            # si tots són iguals llavors tenim una fulla
+            if len(counts) == 1:  # Checking purity of subset
+                tree2[node][value] = clValue[0]
+            # sinó el valor portarà a un nou node amb un altre atribut
+            else:
+                tree2[node][value] = self.createTree(subtable)
+
+        return tree2
+
+    def fit(self, df):
+        self.tree = self.createTree(df)
 
 
 
@@ -49,93 +143,6 @@ def createDiscreteValues(df):
 
     return dfDiscrete
 
-def datasetEntropy(df):
-
-    """
-        per cada valor únic al target (hasCancer):
-            p = probabilitat del valor únic
-            totalEntropy = totalentropy + p*log_2(p)
-    """
-
-    entropy = 0
-    uniqueValues = df.target.unique()
-    for v in uniqueValues:
-        p = df.target.value_counts()[v]/len(df.target)
-        entropy += p*np.log2(p)
-
-    entropy = entropy * -1
-    # print(entropy)
-    return entropy
-
-def attributeEntropy(df, attribute):
-    results = df.target.unique()
-    attrValues = df[attribute].unique()
-
-    attrEntropy = 0
-    for value in attrValues:
-        entropyEachValue = 0
-        for result in results:
-            num = len(df[attribute][df[attribute] == value][df.target == result])
-            den = len(df[attribute][df[attribute] == value])
-            innerFraction = num/(den+eps)
-            entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
-        outerFraction = den/len(df)
-        attrEntropy += -outerFraction * entropyEachValue
-
-    return abs(attrEntropy)
-
-def gain(eDf, eAttr):
-    return eDf-eAttr
-
-
-def findBestAttribute(df):
-    gains = []
-    a = df.keys().tolist()
-    a.remove('target')
-    for key in a:
-        gains.append(datasetEntropy(df) - attributeEntropy(df, key))
-    return a[np.argmax(gains)]
-
-
-def get_subtable(df, node, value):
-    # https://www.sharpsightlabs.com/blog/pandas-reset-index/
-    return df[df[node] == value].reset_index(drop=True)
-
-
-def buildTree(df, tree=None):
-    features = df.keys().tolist()
-    features.remove('target')
-    Class = features
-
-    # Busquem l'atribut amb el màxim Gain d'informació
-    node = findBestAttribute(df)
-
-    # Agafem tots els valors únics de l'atribut amb més Gain
-    attValue = np.unique(df[node])
-
-    # Creem el diccionari que servirà d'arbre
-    if tree is None:
-        tree = {}
-        tree[node] = {}
-
-    # L'arbre es construirà anant cridant la funció de forma recursiva.
-
-    # Cada valor portarà a un dels noos nodes (atributs)
-    for value in attValue:
-
-        # mirem si amb aquest valor tots els resultats són iguals
-        subtable = get_subtable(df, node, value)
-        clValue, counts = np.unique(subtable['target'], return_counts=True)
-
-        # si tots són iguals llavors tenim una fulla
-        if len(counts) == 1:  # Checking purity of subset
-            tree[node][value] = clValue[0]
-        # sinó el valor portarà a un nou node amb un altre atribut
-        else:
-            tree[node][value] = buildTree(subtable)
-
-    return tree
-
 
 
 
@@ -157,9 +164,13 @@ def main():
     # gainDictionary = {k:gain(dfEntropy, entropyDictionary[k]) for k in entropyDictionary}
     # print(gainDictionary)
 
-    t = buildTree(dfDiscrete)
-    import pprint
-    pprint.pprint(t)
+
+    train, test = train_test_split (dfDiscrete, test_size=0.05, random_state=1845)
+
+
+    decisionTree = DecisionTree()
+    decisionTree.fit(train)
+    pprint.pprint(decisionTree.tree)
 
 
 if __name__ == "__main__":
