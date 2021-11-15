@@ -113,11 +113,21 @@ class DecisionTree:
 
         return tree2
 
+    def setEventProbabilityOnNodes(self,df ):
+    # https://www.geeksforgeeks.org/python-update-nested-dictionary/
+        for row in df.itertuples():
+            print(1)
+
+
+
     def fit(self, df):
         self.tree = self.createTree(df)
+        # TODO descomentar quan estigui completa
+        # self.setEvenTProbabilityOnNodes(df)
 
 
     def lookupOutput(self, row, subTree=None):
+        #TODO s'haurà de modificar la funció un cop s'hagi implementat les probabilitats de 0 i 1 a cada node
 
         if not isinstance(subTree, dict):
             self.predictions.append(subTree)
@@ -137,7 +147,6 @@ class DecisionTree:
 
     def predict(self, df):
         self.predictions = []
-        # print(row.age_cut)
 
         for row in df.itertuples():
             self.lookupOutput(row, self.tree)
@@ -178,9 +187,6 @@ def createDiscreteValues(df, categoriesNumber):
     return dfDiscrete
 
 
-
-
-
 def main():
 
     df = pd.read_csv("heart.csv")
@@ -199,12 +205,12 @@ def main():
 
 
     print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
-    nCategoriesDict = {}
+    accuracyByCategoryNumber = {}
     for n in [4,6,7,8,9,10,11]:
         totalAccuracy = 0
         for i in range(0, 10):
             dfDiscrete = createDiscreteValues(df, n)
-            train, test = train_test_split (dfDiscrete, test_size=0.2, random_state=np.random)
+            train, test = train_test_split (dfDiscrete, test_size=0.2)
             decisionTree = DecisionTree()
             decisionTree.fit(train)
             predictions = decisionTree.predict(test)
@@ -216,11 +222,10 @@ def main():
             totalAccuracy = totalAccuracy + accuracy
             print("Accuracy: ",accuracy, " categories: ", n)
             # pprint.pprint(decisionTree.tree)
-        nCategoriesDict[n] = totalAccuracy/10
+        accuracyByCategoryNumber[n] = totalAccuracy/10
         # print("\nMean accuracy: ", totalAccuracy/10, " categories: ", n)
 
-    print(json.dumps(nCategoriesDict, indent = 4))
-    # print(nCategoriesDict)
+    print(json.dumps(accuracyByCategoryNumber, indent = 4))
 
 
     print("\n\n UTILITZANT EL DEL SKLEARN")
