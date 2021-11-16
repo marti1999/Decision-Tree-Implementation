@@ -1,3 +1,8 @@
+import statistics
+import sys
+from datetime import datetime
+from random import random, seed, randint, randrange
+
 import pandas as pd
 import numpy as np
 import pprint
@@ -113,23 +118,35 @@ class DecisionTree:
 
         return tree2
 
+    def setEventProbabilityOnNodes(self,df ):
+    # https://www.geeksforgeeks.org/python-update-nested-dictionary/
+        for row in df.itertuples():
+            print(1)
+
+
+
     def fit(self, df):
         self.tree = self.createTree(df)
+        # TODO descomentar quan estigui completa
+        # self.setEvenTProbabilityOnNodes(df)
 
 
     def lookupOutput(self, row, subTree=None):
+        # TODO s'haurà de modificar la funció un cop s'hagi implementat les probabilitats de 0 i 1 a cada node
 
         if not isinstance(subTree, dict):
             self.predictions.append(subTree)
             return
 
-        #TODO esborrar for, realment només hi ha un valor al diccionari.
+        # TODO esborrar for, realment només hi ha un valor al diccionari.
         for key, value in subTree.items():
             rowValue = getattr(row, key)
             if rowValue in value:
                 self.lookupOutput(row, value[rowValue])
             else:
-                self.predictions.append(2)
+                # TODO de moment quan arriba un valor de l'atribut que no està a l'arbre direm que SÍ té enfermetat
+                #  mes endavant, quan tinguem les probabilitats a cada node ja s'aplicarà el prune.
+                self.predictions.append(1)
 
 
 
@@ -137,7 +154,6 @@ class DecisionTree:
 
     def predict(self, df):
         self.predictions = []
-        # print(row.age_cut)
 
         for row in df.itertuples():
             self.lookupOutput(row, self.tree)
@@ -178,10 +194,25 @@ def createDiscreteValues(df, categoriesNumber):
     return dfDiscrete
 
 
-
-
+def showAccuracyPlots(accuracyByCategoryNumber):
+    labels, data = accuracyByCategoryNumber.keys(), accuracyByCategoryNumber.values()
+    plt.boxplot(data)
+    plt.xticks(range(1, len(labels) + 1), labels)
+    plt.ylim([0.5, 1])
+    plt.xlabel("number of categories")
+    plt.ylabel("accuracy")
+    plt.show()
+    for k in accuracyByCategoryNumber.keys():
+        accuracyByCategoryNumber[k] = statistics.mean(accuracyByCategoryNumber[k])
+    plt.plot(list(accuracyByCategoryNumber.keys()), list(accuracyByCategoryNumber.values()))
+    plt.ylim([0.5, 1])
+    plt.xlabel("number of categories")
+    plt.ylabel("average accuracy")
+    plt.show()
+    print(json.dumps(accuracyByCategoryNumber, indent=4))
 
 def main():
+
 
     df = pd.read_csv("heart.csv")
 
@@ -198,13 +229,16 @@ def main():
     # print(gainDictionary)
 
 
-    print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
-    nCategoriesDict = {}
-    for n in [4,6,7,8,9,10,11]:
-        totalAccuracy = 0
+    # print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
+    accuracyByCategoryNumber = {}
+    for n in [4,6,7,8,9,10,11,12,13,14,15]:
+        accuracyByCategoryNumber[n] = []
+        dfDiscrete = createDiscreteValues(df, n)
+
         for i in range(0, 10):
-            dfDiscrete = createDiscreteValues(df, n)
-            train, test = train_test_split (dfDiscrete, test_size=0.2, random_state=np.random)
+            seed(n*i+1)
+
+            train, test = train_test_split (dfDiscrete, test_size=0.2)
             decisionTree = DecisionTree()
             decisionTree.fit(train)
             predictions = decisionTree.predict(test)
@@ -213,15 +247,11 @@ def main():
             print(groundTruth)
             print(predictions)
             accuracy = accuracy_score(groundTruth, predictions)
-            totalAccuracy = totalAccuracy + accuracy
+            accuracyByCategoryNumber[n].append(accuracy)
             print("Accuracy: ",accuracy, " categories: ", n)
             # pprint.pprint(decisionTree.tree)
-        nCategoriesDict[n] = totalAccuracy/10
-        # print("\nMean accuracy: ", totalAccuracy/10, " categories: ", n)
 
-    print(json.dumps(nCategoriesDict, indent = 4))
-    # print(nCategoriesDict)
-
+    showAccuracyPlots(accuracyByCategoryNumber)
 
     print("\n\n UTILITZANT EL DEL SKLEARN")
     y = df["target"]
@@ -235,6 +265,9 @@ def main():
     dt_predicted = dt.predict(X_test)
     dt_acc_score = accuracy_score(y_test, dt_predicted)
     print("Accuracy of DecisionTreeClassifier:", dt_acc_score , '\n')
+
+
+
 
 
 if __name__ == "__main__":
