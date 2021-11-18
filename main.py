@@ -11,12 +11,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
 from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
 import json
-
-
-
-# numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 from sklearn.model_selection import train_test_split
 
+# numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 eps = np.finfo(float).eps
 
 import seaborn as sns
@@ -69,28 +66,51 @@ class DecisionTree:
 
         return abs(attrEntropy)
 
+    def splitInfo(self, df, attribute):
+        results = df.target.unique()
+        attrValues = df[attribute].unique()
+
+        attrSplitInfo = 0
+        for value in attrValues:
+            entropyEachValue = 0
+            for result in results:
+                num = len(df[attribute][df[attribute] == value][df.target == result])
+                den = len(df[attribute][df[attribute] == value])
+                innerFraction = num / (den + eps)
+                entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
+            outerFraction = den / len(df)
+            attrSplitInfo += -outerFraction * np.log2(den/len(df))
+
+        return abs(attrSplitInfo)
+
     def gain(self, eDf, eAttr):
         return eDf - eAttr
 
-    def findBestAttribute(self, df):
+    def findBestAttribute(self, df, c45=False):
         gains = []
-        a = df.keys().tolist()
-        a.remove('target')
-        for key in a:
-            gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, key))
-        return a[np.argmax(gains)]
+        attributes = df.keys().tolist()
+        attributes.remove('target')
+        for attr in attributes:
+
+            if c45 == False:
+                gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
+            else:
+                gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
+
+
+        return attributes[np.argmax(gains)]
 
     def get_subtable(self, df, node, value):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
         return df[df[node] == value].reset_index(drop=True)
 
-    def createTree(self, df, tree2=None):
+    def createTree(self, df, tree2=None, c45=False):
         features = df.keys().tolist()
         features.remove('target')
         Class = features
 
         # Busquem l'atribut amb el màxim Gain d'informació
-        node = self.findBestAttribute(df)
+        node = self.findBestAttribute(df, c45=c45)
 
         # Agafem tots els valors únics de l'atribut amb més Gain
         attValue = np.unique(df[node])
@@ -113,8 +133,9 @@ class DecisionTree:
             if len(counts) == 1:  # Checking purity of subset
                 tree2[node][value] = clValue[0]
             # sinó el valor portarà a un nou node amb un altre atribut
+            # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[node][value] = self.createTree(subtable)
+                tree2[node][value] = self.createTree(subtable, c45=c45)
 
         return tree2
 
@@ -125,8 +146,8 @@ class DecisionTree:
 
 
 
-    def fit(self, df):
-        self.tree = self.createTree(df)
+    def fit(self, df, c45=False):
+        self.tree = self.createTree(df, c45=c45)
         # TODO descomentar quan estigui completa
         # self.setEvenTProbabilityOnNodes(df)
 
@@ -218,18 +239,17 @@ def main():
 
     #analysingData(df)
 
+
+
     # dfEntropy = datasetEntropy(dfDiscrete)
-    #
     # a = dfDiscrete.keys().tolist()
     # a.remove('target')
     # entropyDictionary = {k : attributeEntropy(dfDiscrete, k) for k in a}
     # print(entropyDictionary)
-    #
     # gainDictionary = {k:gain(dfEntropy, entropyDictionary[k]) for k in entropyDictionary}
     # print(gainDictionary)
 
 
-    # print("un 2 significa que l'arbre no té el valor per algun atribut i per tant no pot arribar a cap fulla")
     accuracyByCategoryNumber = {}
     for n in [4,6,7,8,9,10,11,12,13,14,15]:
         accuracyByCategoryNumber[n] = []
@@ -240,7 +260,7 @@ def main():
 
             train, test = train_test_split (dfDiscrete, test_size=0.2)
             decisionTree = DecisionTree()
-            decisionTree.fit(train)
+            decisionTree.fit(train, c45=False)
             predictions = decisionTree.predict(test)
             groundTruth = test['target'].tolist()
             print("\n")
@@ -265,7 +285,6 @@ def main():
     dt_predicted = dt.predict(X_test)
     dt_acc_score = accuracy_score(y_test, dt_predicted)
     print("Accuracy of DecisionTreeClassifier:", dt_acc_score , '\n')
-
 
 
 
