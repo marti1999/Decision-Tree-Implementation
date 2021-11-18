@@ -6,12 +6,14 @@ from random import random, seed, randint, randrange
 import pandas as pd
 import numpy as np
 import pprint
+
+import sklearn
 from sklearn.metrics import accuracy_score,  precision_score, recall_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
 from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
 import json
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_validate, KFold
 
 # numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 eps = np.finfo(float).eps
@@ -21,12 +23,18 @@ import matplotlib.pyplot as plt
 
 class Node:
     def __init__(self):
+        self.id = None
         self.value = None
-        self.next = None
-        self.parent = None
-        self.childs = None
+        self.probabilityClass1 = None
+        self.parentID = None
+        self.childIDs = None
 
-class DecisionTree:
+
+# Inherit de sklearn.base.BaseEstimator
+# https://scikit-learn.org/stable/developers/develop.html
+# bàsicament per tal de poder utilitzar cross validation i altres mètriques
+# "All estimators in the main scikit-learn codebase should inherit from sklearn.base.BaseEstimator."
+class DecisionTree(sklearn.base.BaseEstimator):
     def __init__(self):
         self.tree = None
         self.predictions = []
@@ -91,11 +99,11 @@ class DecisionTree:
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-
-            if c45 == False:
-                gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            else:
-                gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
+            gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
+            # if (c45 == False):
+            #     gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
+            # else:
+            #     gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
 
 
         return attributes[np.argmax(gains)]
@@ -215,7 +223,7 @@ def createDiscreteValues(df, categoriesNumber):
     return dfDiscrete
 
 
-def showAccuracyPlots(accuracyByCategoryNumber):
+def showMetricPlots(accuracyByCategoryNumber, metric='accuracy' ):
     labels, data = accuracyByCategoryNumber.keys(), accuracyByCategoryNumber.values()
     plt.boxplot(data)
     plt.xticks(range(1, len(labels) + 1), labels)
@@ -249,7 +257,18 @@ def main():
     # gainDictionary = {k:gain(dfEntropy, entropyDictionary[k]) for k in entropyDictionary}
     # print(gainDictionary)
 
+    kf = KFold(n_splits=5, random_state=None, shuffle=True)
+    for n in [4, 6, 7]:
+        dfDiscrete = createDiscreteValues(df, n)
+        decisionTree = DecisionTree()
+        X = dfDiscrete
+        y = dfDiscrete["target"]
+        cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=('accuracy', 'precision'))
+        print(cv_results)
 
+
+    """
+    CROSS VALIDATION MANUAL
     accuracyByCategoryNumber = {}
     for n in [4,6,7,8,9,10,11,12,13,14,15]:
         accuracyByCategoryNumber[n] = []
@@ -271,7 +290,8 @@ def main():
             print("Accuracy: ",accuracy, " categories: ", n)
             # pprint.pprint(decisionTree.tree)
 
-    showAccuracyPlots(accuracyByCategoryNumber)
+    showMetricPlots(accuracyByCategoryNumber)
+    """
 
     print("\n\n UTILITZANT EL DEL SKLEARN")
     y = df["target"]
