@@ -99,11 +99,11 @@ class DecisionTree(sklearn.base.BaseEstimator):
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-            gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            # if (c45 == False):
-            #     gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            # else:
-            #     gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
+            # gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
+            if (c45 == False):
+                gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
+            else:
+                gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
 
 
         return attributes[np.argmax(gains)]
@@ -148,13 +148,14 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return tree2
 
     def setEventProbabilityOnNodes(self,df ):
-    # https://www.geeksforgeeks.org/python-update-nested-dictionary/
+        # TODO s'hauria de fer en algun moment...
+        # https://www.geeksforgeeks.org/python-update-nested-dictionary/
         for row in df.itertuples():
             print(1)
 
 
 
-    def fit(self, df, c45=False):
+    def fit(self, df, Y=None, c45=False):
         self.tree = self.createTree(df, c45=c45)
         # TODO descomentar quan estigui completa
         # self.setEvenTProbabilityOnNodes(df)
@@ -223,22 +224,27 @@ def createDiscreteValues(df, categoriesNumber):
     return dfDiscrete
 
 
-def showMetricPlots(accuracyByCategoryNumber, metric='accuracy' ):
-    labels, data = accuracyByCategoryNumber.keys(), accuracyByCategoryNumber.values()
-    plt.boxplot(data)
-    plt.xticks(range(1, len(labels) + 1), labels)
-    plt.ylim([0.5, 1])
-    plt.xlabel("number of categories")
-    plt.ylabel("accuracy")
-    plt.show()
-    for k in accuracyByCategoryNumber.keys():
-        accuracyByCategoryNumber[k] = statistics.mean(accuracyByCategoryNumber[k])
-    plt.plot(list(accuracyByCategoryNumber.keys()), list(accuracyByCategoryNumber.values()))
-    plt.ylim([0.5, 1])
-    plt.xlabel("number of categories")
-    plt.ylabel("average accuracy")
-    plt.show()
-    print(json.dumps(accuracyByCategoryNumber, indent=4))
+def showMetricPlots(crossValScoresByMetric, metrics=None):
+    if metrics is None:
+        return
+
+    for metric in metrics:
+        crossValScoresByN = crossValScoresByMetric[metric]
+        labels, data = crossValScoresByN.keys(), crossValScoresByN.values()
+        plt.boxplot(data)
+        plt.xticks(range(1, len(labels) + 1), labels)
+        plt.ylim([0.5, 1])
+        plt.xlabel("number of categories")
+        plt.ylabel(metric)
+        plt.show()
+        for k in crossValScoresByN.keys():
+            crossValScoresByN[k] = statistics.mean(crossValScoresByN[k])
+        plt.plot(list(crossValScoresByN.keys()), list(crossValScoresByN.values()))
+        plt.ylim([0.5, 1])
+        plt.xlabel("number of categories")
+        plt.ylabel("average " + metric)
+        plt.show()
+        print(json.dumps(crossValScoresByN, indent=4))
 
 def main():
 
@@ -248,24 +254,24 @@ def main():
     #analysingData(df)
 
 
+    kf = KFold(n_splits=10, random_state=None, shuffle=True)
 
-    # dfEntropy = datasetEntropy(dfDiscrete)
-    # a = dfDiscrete.keys().tolist()
-    # a.remove('target')
-    # entropyDictionary = {k : attributeEntropy(dfDiscrete, k) for k in a}
-    # print(entropyDictionary)
-    # gainDictionary = {k:gain(dfEntropy, entropyDictionary[k]) for k in entropyDictionary}
-    # print(gainDictionary)
+    crossValScoresByMetric={}
+    metrics = ('accuracy', 'precision')
+    for metric in metrics:
+        crossValScoresByMetric[metric]={}
 
-    kf = KFold(n_splits=5, random_state=None, shuffle=True)
-    for n in [4, 6, 7]:
-        dfDiscrete = createDiscreteValues(df, n)
+    for n in [4, 6, 7, 8, 9, 10, 11, 12]:
+        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
         decisionTree = DecisionTree()
         X = dfDiscrete
         y = dfDiscrete["target"]
-        cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=('accuracy', 'precision'))
+        cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_"+metric]
         print(cv_results)
 
+    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision'])
 
     """
     CROSS VALIDATION MANUAL
