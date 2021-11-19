@@ -11,7 +11,7 @@ import sklearn
 from sklearn.metrics import accuracy_score,  precision_score, recall_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
-from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
+from sklearn import metrics
 import json
 from sklearn.model_selection import train_test_split, cross_validate, KFold
 
@@ -33,7 +33,7 @@ class Node:
 # Inherit de sklearn.base.BaseEstimator
 # https://scikit-learn.org/stable/developers/develop.html
 # bàsicament per tal de poder utilitzar cross validation i altres mètriques
-# "All estimators in the main scikit-learn codebase should inherit from sklearn.base.BaseEstimator."
+#   "All estimators in the main scikit-learn codebase should inherit from sklearn.base.BaseEstimator."
 class DecisionTree(sklearn.base.BaseEstimator):
     def __init__(self):
         self.tree = None
@@ -99,13 +99,10 @@ class DecisionTree(sklearn.base.BaseEstimator):
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-            # gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
             if (c45 == False):
                 gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
             else:
                 gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
-
-
         return attributes[np.argmax(gains)]
 
     def get_subtable(self, df, node, value):
@@ -158,7 +155,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
     def fit(self, df, Y=None, c45=False):
         self.tree = self.createTree(df, c45=c45)
         # TODO descomentar quan estigui completa
-        # self.setEvenTProbabilityOnNodes(df)
+        # self.setEventProbabilityOnNodes(df)
 
 
     def lookupOutput(self, row, subTree=None):
@@ -244,7 +241,7 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.xlabel("number of categories")
         plt.ylabel("average " + metric)
         plt.show()
-        print(json.dumps(crossValScoresByN, indent=4))
+        #print(json.dumps(crossValScoresByN, indent=4))
 
 def main():
 
@@ -253,9 +250,22 @@ def main():
 
     #analysingData(df)
 
+    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    train, test = train_test_split(dfDiscrete, test_size=0.2)
+    decisionTree = DecisionTree()
+    decisionTree.fit(train, c45=False)
+    predictions = decisionTree.predict(test)
+    groundTruth = test['target'].tolist()
+    print("\n")
+    print(groundTruth)
+    print(predictions)
+    accuracy = accuracy_score(groundTruth, predictions)
+    print("Accuracy: ", accuracy, " categories: ", 7)
+    pprint.pprint(decisionTree.tree)
+
+
 
     kf = KFold(n_splits=10, random_state=None, shuffle=True)
-
     crossValScoresByMetric={}
     metrics = ('accuracy', 'precision')
     for metric in metrics:
@@ -263,13 +273,16 @@ def main():
 
     for n in [4, 6, 7, 8, 9, 10, 11, 12]:
         dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+
         decisionTree = DecisionTree()
         X = dfDiscrete
         y = dfDiscrete["target"]
+        # TODO veure com passar-li arguments pròpis del model al cross_validate (pel tema del C4.5)
         cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
+        print(cv_results)
+
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_"+metric]
-        print(cv_results)
 
     showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision'])
 
