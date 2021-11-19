@@ -98,11 +98,33 @@ class DecisionTree(sklearn.base.BaseEstimator):
         splitInfo = -np.sum(np.multiply(np.divide(counts, totalCount), np.log2(np.divide(counts, totalCount))))
         return splitInfo
 
+    def calculateGini(self, df, attribute):
+        counts = []
+        giniValues  = []
+        giniValuesSub = []
+        for value in df[attribute].unique():
+            subset = df[df[attribute] == value]
+            counts.append(subset.shape[0])
+            positives = subset[subset['target'] == 1]
+            negatives = subset[subset['target'] != 1]
+            giniSubindex = np.subtract(1, np.add(
+                np.square(np.divide(positives.shape[0], subset.shape[0])),
+                np.square(np.divide(negatives.shape[0], subset.shape[0]))))
+            giniValuesSub.append(giniSubindex)
+        totalCount = np.sum(counts)
+        gini = np.sum(np.multiply(giniValuesSub, np.divide(counts, totalCount)))
+        giniValues.append(gini)
+
+        return giniValues
+
+
+
     def gain(self, eDf, eAttr):
         return eDf - eAttr
 
     def findBestAttribute(self, df, model="id3"):
         gains = []
+        gini = []
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
@@ -111,8 +133,12 @@ class DecisionTree(sklearn.base.BaseEstimator):
             elif (model == 'c45'):
                 gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)))
             elif (model == "gini"):
-                pass
-        return attributes[np.argmax(gains)]
+                gini.append(self.calculateGini(df, attr))
+
+        if(model != "gini"):
+            return attributes[np.argmax(gains)]
+        else:
+            return attributes[np.argmin(gini)]
 
     def get_subtable(self, df, node, value):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
@@ -263,7 +289,7 @@ def main():
     train, test = train_test_split(dfDiscrete, test_size=0.2)
     decisionTree = DecisionTree()
     #model = ['id3', 'c45', 'gini']
-    model = "c45"
+    model = "gini"
     decisionTree.fit(train, model)
     predictions = decisionTree.predict(test)
     groundTruth = test['target'].tolist()
