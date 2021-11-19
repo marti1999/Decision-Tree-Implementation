@@ -75,7 +75,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return abs(attrEntropy)
 
     def splitInfo(self, df, attribute):
-        results = df.target.unique()
+        '''results = df.target.unique()
         attrValues = df[attribute].unique()
 
         attrSplitInfo = 0
@@ -89,33 +89,42 @@ class DecisionTree(sklearn.base.BaseEstimator):
             outerFraction = den / len(df)
             attrSplitInfo += -outerFraction * np.log2(den/len(df))
 
-        return abs(attrSplitInfo)
+        return abs(attrSplitInfo)'''
+        counts = []
+        for value in df[attribute].unique():
+            subset = df[df[attribute] == value]
+            counts.append(subset.shape[0])
+        totalCount = np.sum(counts)
+        splitInfo = -np.sum(np.multiply(np.divide(counts, totalCount), np.log2(np.divide(counts, totalCount))))
+        return splitInfo
 
     def gain(self, eDf, eAttr):
         return eDf - eAttr
 
-    def findBestAttribute(self, df, c45=False):
+    def findBestAttribute(self, df, model="id3"):
         gains = []
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-            if (c45 == False):
+            if (model == 'id3'):
                 gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            else:
-                gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)+eps))
+            elif (model == 'c45'):
+                gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)))
+            elif (model == "gini"):
+                pass
         return attributes[np.argmax(gains)]
 
     def get_subtable(self, df, node, value):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
         return df[df[node] == value].reset_index(drop=True)
 
-    def createTree(self, df, tree2=None, c45=False):
+    def createTree(self, df, model="id3", tree2=None ):
         features = df.keys().tolist()
         features.remove('target')
         Class = features
 
         # Busquem l'atribut amb el màxim Gain d'informació
-        node = self.findBestAttribute(df, c45=c45)
+        node = self.findBestAttribute(df, model)
 
         # Agafem tots els valors únics de l'atribut amb més Gain
         attValue = np.unique(df[node])
@@ -140,7 +149,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[node][value] = self.createTree(subtable, c45=c45)
+                tree2[node][value] = self.createTree(subtable, model)
 
         return tree2
 
@@ -152,8 +161,8 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
 
 
-    def fit(self, df, Y=None, c45=False):
-        self.tree = self.createTree(df, c45=c45)
+    def fit(self, df,  modelo=None, Y=None):
+        self.tree = self.createTree(df, modelo)
         # TODO descomentar quan estigui completa
         # self.setEventProbabilityOnNodes(df)
 
@@ -253,7 +262,9 @@ def main():
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     train, test = train_test_split(dfDiscrete, test_size=0.2)
     decisionTree = DecisionTree()
-    decisionTree.fit(train, c45=False)
+    #model = ['id3', 'c45', 'gini']
+    model = "c45"
+    decisionTree.fit(train, model)
     predictions = decisionTree.predict(test)
     groundTruth = test['target'].tolist()
     print("\n")
