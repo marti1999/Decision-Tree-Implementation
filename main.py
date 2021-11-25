@@ -301,8 +301,24 @@ def main():
     # pprint.pprint(decisionTree.tree)
 
 
-    # train, test = trainTestSplit(df, 0.8)
 
+
+    # UN SOL MODEL PER FER PROVES
+    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
+    # train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
+    decisionTree = DecisionTree()
+    decisionTree.fit(train, 'id3')
+    y_pred = decisionTree.predict(test)
+    y_test = test['target'].tolist()
+    print(y_test)
+    print(y_pred)
+    print("Accuracy: ", accuracy_score(y_test, y_pred), " categories: ", 7)
+    pprint.pprint(decisionTree.tree)
+
+
+
+    # PER PROVAR EL NOSTRE CROSS VALIDATION
     metrics = ('accuracy', 'precision')
     crossValScoresByMetric = {}
     for metric in metrics:
@@ -366,8 +382,6 @@ def kFoldSplit(df, n_splits=5):
     return splits
 
 def crossValidation(model, df, n_splits=5, scoring=['accuracy'], shuffle=True):
-    sizeDf = df.shape[0]
-    features = df.keys().tolist()
     if shuffle: df = df.sample(frac=1).reset_index(drop=True)
     splits = kFoldSplit(df, n_splits)
 
@@ -390,7 +404,6 @@ def crossValidation(model, df, n_splits=5, scoring=['accuracy'], shuffle=True):
         # print("\n")
         # print(groundTruth)
         # print(predictions)
-        # print(accuracy_score(groundTruth, predictions))
         accuracy.append(accuracy_score(groundTruth, predictions))
         precision.append(precision_score(groundTruth, predictions))
         recall.append(recall_score(groundTruth, predictions))
