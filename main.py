@@ -357,7 +357,7 @@ def main():
 
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION
-    metrics = ('accuracy', 'precision')
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScoresByMetric = {}
     for metric in metrics:
         crossValScoresByMetric[metric] = {}
@@ -367,7 +367,7 @@ def main():
         print(cv_results)
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision', 'recall', 'f1Score'])
+    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
 
 
     # crossValidationSklearn(df)
