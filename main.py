@@ -144,13 +144,13 @@ class DecisionTree(sklearn.base.BaseEstimator):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
         return df[df[node] == value].reset_index(drop=True)
 
-    def createTree(self, df, heuristica="id3", tree2=None):
+    def createTree(self, df, tree2=None, heuristica="id3"):
         features = df.keys().tolist()
         features.remove('target')
         Class = features
 
         # Busquem l'atribut amb el màxim Gain d'informació
-        node = self.findBestAttribute(df, heuristica)
+        node = self.findBestAttribute(df, heuristica=heuristica)
 
         # Agafem tots els valors únics de l'atribut amb més Gain
         attValue = np.unique(df[node])
@@ -175,7 +175,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[node][value] = self.createTree(subtable, heuristica)
+                tree2[node][value] = self.createTree(subtable, heuristica=heuristica)
 
         return tree2
 
@@ -187,8 +187,8 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
 
 
-    def fit(self, df, heuristica='id3', Y=None):
-        self.tree = self.createTree(df, heuristica)
+    def fit(self, df, Y=None, heuristica='id3'):
+        self.tree = self.createTree(df, heuristica=heuristica)
         # TODO descomentar quan estigui completa
         # self.setEventProbabilityOnNodes(df)
 
@@ -301,7 +301,7 @@ def main():
     # pprint.pprint(decisionTree.tree)
 
 
-    train, test = trainTestSplit(df, 0.8)
+    # train, test = trainTestSplit(df, 0.8)
     model = DecisionTree()
     crossValidation(model, dfDiscrete, 5)
 
