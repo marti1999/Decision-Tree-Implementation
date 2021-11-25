@@ -8,7 +8,7 @@ import numpy as np
 import pprint
 
 import sklearn
-from sklearn.metrics import accuracy_score,  precision_score, recall_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
 from sklearn import metrics
@@ -302,8 +302,18 @@ def main():
 
 
     # train, test = trainTestSplit(df, 0.8)
-    model = DecisionTree()
-    crossValidation(model, dfDiscrete, 5)
+
+    metrics = ('accuracy', 'precision')
+    crossValScoresByMetric = {}
+    for metric in metrics:
+        crossValScoresByMetric[metric] = {}
+    for n in [4,6,7]:
+        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+        cv_results = crossValidation(DecisionTree(), dfDiscrete, n_splits=10)
+        print(cv_results)
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision'])
 
 
     """
@@ -355,14 +365,17 @@ def kFoldSplit(df, n_splits=5):
         splits.append(split)
     return splits
 
-
-def crossValidation(model, df, n_splits, scoring=['accuracy'], shuffle=True):
+def crossValidation(model, df, n_splits=5, scoring=['accuracy'], shuffle=True):
     sizeDf = df.shape[0]
     features = df.keys().tolist()
     if shuffle: df = df.sample(frac=1).reset_index(drop=True)
     splits = kFoldSplit(df, n_splits)
-    print(10)
 
+    scores = {}
+    accuracy = []
+    precision = []
+    recall = []
+    f1Score = []
     for i in range(n_splits):
         train = []
         for j in range(n_splits):
@@ -374,10 +387,19 @@ def crossValidation(model, df, n_splits, scoring=['accuracy'], shuffle=True):
         model.fit(train, heuristica='id3')
         predictions = model.predict(test)
         groundTruth = test['target'].tolist()
-        print("\n")
-        print(groundTruth)
-        print(predictions)
-        print(accuracy_score(groundTruth, predictions))
+        # print("\n")
+        # print(groundTruth)
+        # print(predictions)
+        # print(accuracy_score(groundTruth, predictions))
+        accuracy.append(accuracy_score(groundTruth, predictions))
+        precision.append(precision_score(groundTruth, predictions))
+        recall.append(recall_score(groundTruth, predictions))
+        f1Score.append(f1_score(groundTruth, predictions))
+    scores['test_accuracy'] = accuracy
+    scores['test_precision'] = precision
+    scores['test_recall'] = recall
+    scores['test_f1Score'] = f1Score
+    return scores
 
 
 
