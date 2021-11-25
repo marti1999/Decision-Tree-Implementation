@@ -122,20 +122,20 @@ class DecisionTree(sklearn.base.BaseEstimator):
     def gain(self, eDf, eAttr):
         return eDf - eAttr
 
-    def findBestAttribute(self, df, model="id3"):
+    def findBestAttribute(self, df, heuristica="id3"):
         gains = []
         gini = []
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-            if (model == 'id3'):
+            if (heuristica == 'id3'):
                 gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            elif (model == 'c45'):
+            elif (heuristica == 'c45'):
                 gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)))
-            elif (model == "gini"):
+            elif (heuristica == "gini"):
                 gini.append(self.calculateGini(df, attr))
 
-        if(model != "gini"):
+        if(heuristica != "gini"):
             return attributes[np.argmax(gains)]
         else:
             return attributes[np.argmin(gini)]
@@ -144,13 +144,13 @@ class DecisionTree(sklearn.base.BaseEstimator):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
         return df[df[node] == value].reset_index(drop=True)
 
-    def createTree(self, df, model="id3", tree2=None ):
+    def createTree(self, df, heuristica="id3", tree2=None):
         features = df.keys().tolist()
         features.remove('target')
         Class = features
 
         # Busquem l'atribut amb el màxim Gain d'informació
-        node = self.findBestAttribute(df, model)
+        node = self.findBestAttribute(df, heuristica)
 
         # Agafem tots els valors únics de l'atribut amb més Gain
         attValue = np.unique(df[node])
@@ -175,7 +175,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[node][value] = self.createTree(subtable, model)
+                tree2[node][value] = self.createTree(subtable, heuristica)
 
         return tree2
 
@@ -187,8 +187,8 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
 
 
-    def fit(self, df,  modelo=None, Y=None):
-        self.tree = self.createTree(df, modelo)
+    def fit(self, df, heuristica='id3', Y=None):
+        self.tree = self.createTree(df, heuristica)
         # TODO descomentar quan estigui completa
         # self.setEventProbabilityOnNodes(df)
 
@@ -286,42 +286,25 @@ def main():
     #analysingData(df)
 
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    train, test = train_test_split(dfDiscrete, test_size=0.2)
-    decisionTree = DecisionTree()
-    #model = ['id3', 'c45', 'gini']
-    model = "gini"
-    decisionTree.fit(train, model)
-    predictions = decisionTree.predict(test)
-    groundTruth = test['target'].tolist()
-    print("\n")
-    print(groundTruth)
-    print(predictions)
-    accuracy = accuracy_score(groundTruth, predictions)
-    print("Accuracy: ", accuracy, " categories: ", 7)
-    pprint.pprint(decisionTree.tree)
+    # train, test = train_test_split(dfDiscrete, test_size=0.2)
+    # decisionTree = DecisionTree()
+    # #model = ['id3', 'c45', 'gini']
+    # heuristica = "id3"
+    # decisionTree.fit(train, heuristica)
+    # predictions = decisionTree.predict(test)
+    # groundTruth = test['target'].tolist()
+    # print("\n")
+    # print(groundTruth)
+    # print(predictions)
+    # accuracy = accuracy_score(groundTruth, predictions)
+    # print("Accuracy: ", accuracy, " categories: ", 7)
+    # pprint.pprint(decisionTree.tree)
 
 
+    train, test = trainTestSplit(df, 0.8)
+    model = DecisionTree()
+    crossValidation(model, dfDiscrete, 5)
 
-    kf = KFold(n_splits=10, random_state=None, shuffle=True)
-    crossValScoresByMetric={}
-    metrics = ('accuracy', 'precision')
-    for metric in metrics:
-        crossValScoresByMetric[metric]={}
-
-    for n in [4, 6, 7, 8, 9, 10, 11, 12]:
-        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-
-        decisionTree = DecisionTree()
-        X = dfDiscrete
-        y = dfDiscrete["target"]
-        # TODO veure com passar-li arguments pròpis del model al cross_validate (pel tema del C4.5)
-        cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
-        print(cv_results)
-
-        for metric in metrics:
-            crossValScoresByMetric[metric][n] = cv_results["test_"+metric]
-
-    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision'])
 
     """
     CROSS VALIDATION MANUAL
@@ -349,6 +332,78 @@ def main():
     showMetricPlots(accuracyByCategoryNumber)
     """
 
+    # crossValidationSklearn(df)
+
+
+
+    # compareWithSklearn(df)
+
+
+def trainTestSplit(df, trainSize=0.8, shuffle=True):
+    df = df.sample(frac=1).reset_index(drop=True)
+    sizeDf = df.shape[0]
+    train = df.head(int(trainSize*sizeDf))
+    test = df.tail(int((1-trainSize)*sizeDf))
+    return train, test
+
+def kFoldSplit(df, n_splits=5):
+    splits = []
+    sizeDf = df.shape[0]
+    splitSize = int(df.shape[0]/n_splits)
+    for i in range(n_splits):
+        split = df.head(splitSize*i+splitSize).tail(splitSize)
+        splits.append(split)
+    return splits
+
+
+def crossValidation(model, df, n_splits, scoring=['accuracy'], shuffle=True):
+    sizeDf = df.shape[0]
+    features = df.keys().tolist()
+    if shuffle: df = df.sample(frac=1).reset_index(drop=True)
+    splits = kFoldSplit(df, n_splits)
+    print(10)
+
+    for i in range(n_splits):
+        train = []
+        for j in range(n_splits):
+            if j != i:
+                train.append(splits[j])
+        test = splits[i]
+        train = pd.concat(train)
+
+        model.fit(train, heuristica='id3')
+        predictions = model.predict(test)
+        groundTruth = test['target'].tolist()
+        print("\n")
+        print(groundTruth)
+        print(predictions)
+        print(accuracy_score(groundTruth, predictions))
+
+
+
+
+def crossValidationSklearn(df):
+    kf = KFold(n_splits=10, random_state=None, shuffle=True)
+    crossValScoresByMetric = {}
+    metrics = ('accuracy', 'precision')
+    for metric in metrics:
+        crossValScoresByMetric[metric] = {}
+    for n in [4, 6, 7, 8, 9, 10, 11, 12]:
+        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+
+        decisionTree = DecisionTree()
+        X = dfDiscrete
+        y = dfDiscrete["target"]
+        # TODO veure com passar-li arguments pròpis del model al cross_validate (pel tema del C4.5)
+        cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
+        print(cv_results)
+
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision'])
+
+
+def compareWithSklearn(df):
     print("\n\n UTILITZANT EL DEL SKLEARN")
     y = df["target"]
     X = df.drop('target', axis=1)
@@ -360,9 +415,7 @@ def main():
     dt.fit(X_train, y_train)
     dt_predicted = dt.predict(X_test)
     dt_acc_score = accuracy_score(y_test, dt_predicted)
-    print("Accuracy of DecisionTreeClassifier:", dt_acc_score , '\n')
-
-
+    print("Accuracy of DecisionTreeClassifier:", dt_acc_score, '\n')
 
 
 if __name__ == "__main__":
