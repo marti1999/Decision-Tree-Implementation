@@ -135,6 +135,8 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return eDf - eAttr
 
     def findBestAttribute(self, df):
+
+        # TODO Exercici 1: el ID3 funciona, el c45 a mitges, el gini sembla ser que no
         gains = []
         gini = []
         attributes = df.keys().tolist()
@@ -180,7 +182,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             clValue, counts = np.unique(subtable['target'], return_counts=True)
 
             # si tots són iguals llavors tenim una fulla
-            if len(counts) == 1:  # Checking purity of subset
+            if len(counts) == 1:
                 # guardem tant el resultat com el nombre de casos que arriben a aquesta fulla
                 tree2[millorAtribut][value] = (clValue[0], counts[0])
             # sinó el valor portarà a un nou node amb un altre atribut
@@ -213,7 +215,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
                     self.class1 += subTree[1]
             return
 
-        # TODO esborrar for, realment només hi ha un valor al diccionari (per alguna rao, peta sense el for).
+        # TODO (es pot deixar per qua ja funcioni tot) esborrar for, realment només hi ha un valor al diccionari (per alguna rao, peta sense el for).
         for atribut_a_preguntar, valorsAtribut in subTree.items():
 
             valorAtributDelaMostra = getattr(row, atribut_a_preguntar)
@@ -273,7 +275,8 @@ def analysingData(df):
     plt.show()
 
 def createDiscreteValues(df, categoriesNumber):
-    # TODO de moment es fa amb intervals especificats, caldrà programar també el 2-way partition
+    # TODO Exercici 3: de moment es fa amb intervals especificats, caldrà programar també el 2-way partition
+    # TODO Exercici 3: a part del 2-way partition, també es pot mirar de trobar el nombre d'invervals òptims per cada atribut
 
     # el cat.cades passa d'intervals a valors numèrics, necessari per tractar després amb ells (bàscicament f el mateix que el label encoding)
     df['age_cut'] = pd.cut(df['age'], categoriesNumber).cat.codes
