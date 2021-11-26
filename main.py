@@ -132,11 +132,14 @@ class DecisionTree(sklearn.base.BaseEstimator):
         gini_classes = {}
         x = df[attribute]
         ret = 0
+        #Comptem la quantitat d'atributs differents que tenim
         for element in x.unique():
             gini_classes[element] = 0
+            #Cada element different fa de index per a un enter que es el nombre de vegades que es repeteix aquell valor.
             for valor in x:
                 if (valor == element):
                     gini_classes[element] += 1;
+        #Fem el sumatori, per cada valor diferent, calculem la proporció de vegades que apareix respecte al total i la elevem al quadrat.
         for gini in gini_classes:
             ret += (gini_classes[gini]/df.shape[0])**2
 
