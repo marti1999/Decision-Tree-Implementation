@@ -129,15 +129,19 @@ class DecisionTree(sklearn.base.BaseEstimator):
         gini = np.sum(np.multiply(giniValuesSub, np.divide(counts, totalCount)))
         giniValues.append(gini)
         '''
-        diffsum = 0
+        gini_classes = {}
         x = df[attribute]
-        for i, xi in enumerate(x[:-1], 1):
-            diffsum += np.sum(np.abs(xi - x[i:]))
-        gini = 0
-        if (len(x) != 0):
-            aux = (len(x) ** 2 * np.mean(x))
-            gini = diffsum / aux
-        return gini
+        ret = 0
+        for element in x.unique():
+            gini_classes[element] = 0
+            for valor in x:
+                if (valor == element):
+                    gini_classes[element] += 1;
+        for gini in gini_classes:
+            ret += (gini_classes[gini]/df.shape[0])**2
+
+        return 1-ret
+
 
         #return giniValues
 
