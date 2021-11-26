@@ -1,5 +1,6 @@
 import statistics
 import sys
+from collections import Counter
 from datetime import datetime
 from random import random, seed, randint, randrange
 
@@ -318,7 +319,40 @@ def fixMissingAndWrongValues(df):
     return df
 
 
+def detectOutliers(df, atributs, maxOutliers):
+    # maxOutliers és el nombre màxim d'outliers permesos per mostra
 
+    indexsOutliers = []
+
+    # iterem sobre tots els atributs
+    for atr in atributs:
+        # primer quartil
+        Q1 = np.percentile(df[atr], 25)
+        # tercer quartil
+        Q3 = np.percentile(df[atr], 75)
+        # Interquartile range (IQR)
+        IQR = Q3 - Q1
+
+        # zona de tall
+        cutOff = 1.5 * IQR
+
+        # Busquem els indexs dels registres fora de la zona de tall
+        indexsOutliersAtr = df[(df[atr] < Q1 - cutOff) | (df[atr] > Q3 + cutOff)].index
+
+        # Els guardem a la llista general
+        indexsOutliers.extend(indexsOutliersAtr)
+
+    # contem quantes vegades ha aparegut cada índex i seleccinem els que sobrepasen el límit especificat
+    indexsOutliers = Counter(indexsOutliers)
+    indexsDrop = list(k for k, v in indexsOutliers.items() if v > maxOutliers)
+
+    return indexsDrop
+
+def deleteRowsByIndex(df, indexs):
+    rows = df.index[indexs]
+    # https://stackoverflow.com/questions/43893457/understanding-inplace-true
+    df.drop(rows, inplace=True)
+    return df
 
 
 def showMetricPlots(crossValScoresByMetric, metrics=None):
@@ -400,13 +434,15 @@ def main():
     df = pd.read_csv("heart.csv")
 
     df = fixMissingAndWrongValues(df)
+    outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
+    df = deleteRowsByIndex(df, outliersToDrop)
 
     #analysingData(df)
 
     # UN SOL MODEL PER FER PROVES
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
-    # train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
+    # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
+    train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
     decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
