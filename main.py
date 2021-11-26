@@ -22,6 +22,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+# no s'utilitza, de moment...
 class Node:
     def __init__(self, nId, isLeaf, attribute, attValues = [], ):
         self.id = nId
@@ -37,16 +38,16 @@ class Node:
 # https://scikit-learn.org/stable/developers/develop.html
 # bàsicament per tal de poder utilitzar cross validation i altres mètriques
 #   "All estimators in the main scikit-learn codebase should inherit from sklearn.base.BaseEstimator."
+# només és necessari per quan volem comparar els nostres mètodes amb els de sklearn. Si no s'utilitza res de sklearn, es pot treure.
 class DecisionTree(sklearn.base.BaseEstimator):
 
-    def __init__(self):
+    def __init__(self, heuristic='id3'):
         self.tree = None
-        self.treeUnflatten = None
-        self.predictions = []
-        self.uniqueNodeId = 1
+        self.heuristic = heuristic
+        self.predictions = [] # guarda les prediccions que retorna el predict
         self.class0 = 0 # variable que servirà de comptador quan busquem tots els possibles outcomes de valors no existents a l'arbre
         self.class1 = 0 # variable que servirà de comptador quan busquem tots els possibles outcomes de valors no existents a l'arbre
-        self.fentPrune = False
+        self.doingProbabilityApproach = False # indica si la prediccio actual és normal o ha de fer probability approach
 
 
     def datasetEntropy(self, df):
@@ -170,10 +171,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
         # L'arbre es construirà anant cridant la funció de forma recursiva.
 
-        # Cada valor portarà a un dels noos nodes (atributs)
-
-        #node = Node(self.uniqueNodeId, False, millorAtribut, attValues=attValue.tolist())
-
+        # Cada valor portarà a un dels nous nodes (atributs)
         for value in attValue:
 
             # mirem si amb aquest valor tots els resultats són iguals
@@ -182,40 +180,31 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
             # si tots són iguals llavors tenim una fulla
             if len(counts) == 1:  # Checking purity of subset
-                # fulla = Node(self.uniqueNodeId, True, clValue[0])
-                # self.uniqueNodeId += 1
-                # self.treeUnflatten[fulla.id] = fulla
-                tree2[millorAtribut][value] = (clValue[0], counts[0]) # guardem tant el resultat com el nombre de casos que arriben a aquesta fulla
+                # guardem tant el resultat com el nombre de casos que arriben a aquesta fulla
+                tree2[millorAtribut][value] = (clValue[0], counts[0])
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
                 tree2[millorAtribut][value] = self.createTree(subtable, heuristica=heuristica)
 
-
-        # self.treeUnflatten[node.id] = node
-
         return tree2
-
-    def setEventProbabilityOnNodes(self,df ):
-        # TODO s'hauria de fer en algun moment...
-        # https://www.geeksforgeeks.org/python-update-nested-dictionary/
-        for row in df.itertuples():
-            print(1)
-
 
 
     def fit(self, df, Y=None, heuristica='id3'):
         self.tree = self.createTree(df, heuristica=heuristica)
-        # TODO descomentar quan estigui completa
-        # self.setEventProbabilityOnNodes(df)
 
 
     def lookupOutput(self, row, subTree=None):
-        # TODO s'haurà de modificar la funció un cop s'hagi implementat les probabilitats de 0 i 1 a cada node
 
+        # si no és un diccionari significa que hem arribat a una fulla, busquem quin és el seu output
         if not isinstance(subTree, dict):
-            if not self.fentPrune:
+
+            # si hem arribat sense haver de fer probability approach simplement guardem la nova predicció
+            if not self.doingProbabilityApproach:
                 self.predictions.append(subTree[0])
+            # en cas d'estar fent probability approach, llavors estem buscant múltiples camins la vegada
+            # en comptes d'afegir el output de la fulla, sumem al contador de la classe pertinent quantes mostres del training han arribat a aquesta fulla
+            # mes endevant es mirarà quina classe té més mostres i s'fegirà coma predicció
             else:
                 if subTree[0] == 0:
                     self.class0 += subTree[1]
@@ -223,35 +212,43 @@ class DecisionTree(sklearn.base.BaseEstimator):
                     self.class1 += subTree[1]
             return
 
-        # TODO esborrar for, realment només hi ha un valor al diccionari.
+        # TODO esborrar for, realment només hi ha un valor al diccionari (per alguna rao, peta sense el for).
         for atribut_a_preguntar, valorsAtribut in subTree.items():
-            valorAtributLinia = getattr(row, atribut_a_preguntar)
-            if valorAtributLinia in valorsAtribut:
-                self.lookupOutput(row, valorsAtribut[valorAtributLinia])
+
+            valorAtributDelaMostra = getattr(row, atribut_a_preguntar)
+
+            # si el valor de l'atribut ja estisteix a l'arbre, simplement seguim baixant i li passem el subarbre
+            if valorAtributDelaMostra in valorsAtribut:
+                self.lookupOutput(row, valorsAtribut[valorAtributDelaMostra])
+
+            # en cas que no existeixi aquest valor a l'arbre
             else:
-                # TODO de moment quan arriba un valor de l'atribut que no està a l'arbre direm que SÍ té enfermetat
-                #  mes endavant, quan tinguem les probabilitats a cada node ja s'aplicarà el prune.
-                self.fentPrune = True
+                # indiquem que fem probability approach per tal que ho sàpiguen les pròximes crides
+                self.doingProbabilityApproach = True
+                # cada una d'aquestes iteracions explorarà una branca del node actual (múltiples camins)
                 for val in valorsAtribut.keys():
                     self.lookupOutput(row, valorsAtribut[val])
 
+                # El que hi havia abans de fer el probabilityApproach. Simplement dèiem que tenia la malaltia.
                 # self.predictions.append(1)
-
-
-
 
 
     def predict(self, df):
         self.predictions = []
 
         for row in df.itertuples():
+
+            # reset d'atributs que segurament s'han modificat a la predicció anterior
             self.class0 = 0
             self.class1 = 0
-            self.fentPrune = False
+            self.doingProbabilityApproach = False
 
+            # recorrem l'abre i busquem el resultat
             self.lookupOutput(row, self.tree)
 
-            if self.fentPrune:
+            # si durant l'exploració de l'arbre s'ha agut de fer probability approach,
+            # mirem quina classe té més probabilitats de ser la real i guardem el resultat a prediccions
+            if self.doingProbabilityApproach:
                 possibleOutcome = 1
                 if self.class0 > self.class1:
                     possibleOutcome = 0
@@ -274,7 +271,8 @@ def analysingData(df):
     plt.show()
 
 def createDiscreteValues(df, categoriesNumber):
-    # df['age_qcut'] = pd.qcut(df['age'], 10)
+    # TODO de moment es fa amb intervals especificats, caldrà programar també el 2-way partition
+
     df['age_cut'] = pd.cut(df['age'], categoriesNumber).cat.codes
     df['trestbps_cut'] = pd.cut(df['trestbps'], categoriesNumber).cat.codes
     df['chol_cut'] = pd.cut(df['chol'], categoriesNumber).cat.codes
@@ -295,8 +293,6 @@ def createDiscreteValues(df, categoriesNumber):
 
 
 def showMetricPlots(crossValScoresByMetric, metrics=None):
-    if metrics is None:
-        return
 
     for metric in metrics:
         crossValScoresByN = crossValScoresByMetric[metric]
@@ -316,82 +312,28 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.show()
         #print(json.dumps(crossValScoresByN, indent=4))
 
-def main():
-
-
-    df = pd.read_csv("heart.csv")
-
-    #analysingData(df)
-
-    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    # train, test = train_test_split(dfDiscrete, test_size=0.2)
-    # decisionTree = DecisionTree()
-    # #model = ['id3', 'c45', 'gini']
-    # heuristica = "id3"
-    # decisionTree.fit(train, heuristica)
-    # predictions = decisionTree.predict(test)
-    # groundTruth = test['target'].tolist()
-    # print("\n")
-    # print(groundTruth)
-    # print(predictions)
-    # accuracy = accuracy_score(groundTruth, predictions)
-    # print("Accuracy: ", accuracy, " categories: ", 7)
-    # pprint.pprint(decisionTree.tree)
-
-
-
-
-    # UN SOL MODEL PER FER PROVES
-    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
-    # train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree()
-    decisionTree.fit(train, 'id3')
-    y_pred = decisionTree.predict(test)
-    y_test = test['target'].tolist()
-    print(y_test)
-    print(y_pred)
-    print("Accuracy: ", accuracy_score(y_test, y_pred), " categories: ", 7)
-    pprint.pprint(decisionTree.tree)
-
-
-
-    # PER PROVAR EL NOSTRE CROSS VALIDATION
-    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
-    crossValScoresByMetric = {}
-    for metric in metrics:
-        crossValScoresByMetric[metric] = {}
-    for n in [4,6,7,8,9,10,11,12,13,14]:
-        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-        cv_results = crossValidation(DecisionTree(), dfDiscrete, n_splits=10)
-        print(cv_results)
-        for metric in metrics:
-            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
-
-
-    # crossValidationSklearn(df)
-    # compareWithSklearn(df)
-
 
 def trainTestSplit(df, trainSize=0.8, shuffle=True):
-    df = df.sample(frac=1).reset_index(drop=True)
+    if shuffle:
+        df = df.sample(frac=1).reset_index(drop=True)
     sizeDf = df.shape[0]
     train = df.head(int(trainSize*sizeDf))
     test = df.tail(int((1-trainSize)*sizeDf))
     return train, test
 
+
 def kFoldSplit(df, n_splits=5):
     splits = []
-    sizeDf = df.shape[0]
     splitSize = int(df.shape[0]/n_splits)
     for i in range(n_splits):
         split = df.head(splitSize*i+splitSize).tail(splitSize)
         splits.append(split)
     return splits
 
-def crossValidation(model, df, n_splits=5, scoring=['accuracy'], shuffle=True):
-    if shuffle: df = df.sample(frac=1).reset_index(drop=True)
+
+def crossValidation(model, df, n_splits=5, shuffle=True):
+    if shuffle:
+        df = df.sample(frac=1).reset_index(drop=True)
     splits = kFoldSplit(df, n_splits)
 
     scores = {}
@@ -422,6 +364,48 @@ def crossValidation(model, df, n_splits=5, scoring=['accuracy'], shuffle=True):
     scores['test_recall'] = recall
     scores['test_f1Score'] = f1Score
     return scores
+
+
+def main():
+
+    df = pd.read_csv("heart.csv")
+
+    #analysingData(df)
+
+    # UN SOL MODEL PER FER PROVES
+    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
+    # train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
+    decisionTree = DecisionTree()
+    decisionTree.fit(train, 'id3')
+    y_pred = decisionTree.predict(test)
+    y_test = test['target'].tolist()
+    print(y_test)
+    print(y_pred)
+    print("Accuracy: ", accuracy_score(y_test, y_pred), " categories: ", 7)
+    pprint.pprint(decisionTree.tree)
+
+
+
+    # PER PROVAR EL NOSTRE CROSS VALIDATION
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    crossValScoresByMetric = {}
+    for metric in metrics:
+        crossValScoresByMetric[metric] = {}
+    for n in [4,6,7,8,9,10,11,12,13,14]:
+        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+        cv_results = crossValidation(DecisionTree(), dfDiscrete, n_splits=10)
+        print(cv_results)
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
+
+
+    # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
+    # crossValidationSklearn(df)
+    # compareWithSklearn(df)
+
+
 
 
 
