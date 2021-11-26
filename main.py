@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 # no s'utilitza, de moment...
 class Node:
-    def __init__(self, nId, isLeaf, attribute, attValues = [], ):
+    def __init__(self, nId, isLeaf, attribute, attValues = []):
         self.id = nId
         self.isLeaf = isLeaf
         self.attribute = attribute
@@ -215,7 +215,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
                     self.class1 += subTree[1]
             return
 
-        # TODO (es pot deixar per qua ja funcioni tot) esborrar for, realment només hi ha un valor al diccionari (per alguna rao, peta sense el for).
+        # TODO (es pot deixar per quan ja funcioni tot) esborrar for, realment només hi ha un valor al diccionari (per alguna rao, peta sense el for).
         for atribut_a_preguntar, valorsAtribut in subTree.items():
 
             valorAtributDelaMostra = getattr(row, atribut_a_preguntar)
@@ -297,6 +297,29 @@ def createDiscreteValues(df, categoriesNumber):
 
     return dfDiscrete
 
+def fixMissingAndWrongValues(df):
+
+    # Realment no hi ha valors nuls, però si hi haguèssin es faria així per dades categòriques i continues
+    # df['ca'] = df['ca'].fillna(df['ca'].mode()[0])
+    # df['age'] = df['age'].fillna(df['age'].mean())
+
+    # a continuació s'actualitzen els valors que no són correctes
+    # s'ha de fer manualment, doncs cada un dels atributs té el seu rang propi
+    df.loc[df['ca'] > 3, 'ca'] = df['ca'].mode()[0]
+    df.loc[df['ca'] < 0, 'ca'] = df['ca'].mode()[0]
+    df.loc[df['thal'] < 1, 'thal'] = df['thal'].mode()[0]
+    df.loc[df['thal'] > 3, 'thal'] = df['thal'].mode()[0]
+    df.loc[df['restecg'] > 2, 'restecg'] = df['restecg'].mode()[0]
+    df.loc[df['restecg'] < 0, 'restecg'] = df['restecg'].mode()[0]
+    df.loc[df['cp'] < 0, 'cp'] = df['cp'].mode()[0]
+    df.loc[df['cp'] > 3, 'cp'] = df['cp'].mode()[0]
+
+
+    return df
+
+
+
+
 
 def showMetricPlots(crossValScoresByMetric, metrics=None):
 
@@ -375,6 +398,8 @@ def crossValidation(model, df, n_splits=5, shuffle=True):
 def main():
 
     df = pd.read_csv("heart.csv")
+
+    df = fixMissingAndWrongValues(df)
 
     #analysingData(df)
 
