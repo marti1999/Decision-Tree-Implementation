@@ -41,13 +41,14 @@ class Node:
 # només és necessari per quan volem comparar els nostres mètodes amb els de sklearn. Si no s'utilitza res de sklearn, es pot treure.
 class DecisionTree(sklearn.base.BaseEstimator):
 
-    def __init__(self, heuristic='id3'):
+    def __init__(self, heuristic='id3', enableProbabilisticApproach=True):
         self.tree = None
         self.heuristic = heuristic
+        self.enableProbabilisticApproach = enableProbabilisticApproach # True fa probabilistic approach, False posa un 1 quan no troba el valor
         self.predictions = [] # guarda les prediccions que retorna el predict
         self.class0 = 0 # variable que servirà de comptador quan busquem tots els possibles outcomes de valors no existents a l'arbre
         self.class1 = 0 # variable que servirà de comptador quan busquem tots els possibles outcomes de valors no existents a l'arbre
-        self.doingProbabilityApproach = False # indica si la prediccio actual és normal o ha de fer probability approach
+        self.doingProbabilisticApproach = False # indica si la prediccio actual és normal o ha de fer probabilistic approach
 
 
     def datasetEntropy(self, df):
@@ -133,20 +134,20 @@ class DecisionTree(sklearn.base.BaseEstimator):
     def gain(self, eDf, eAttr):
         return eDf - eAttr
 
-    def findBestAttribute(self, df, heuristica="id3"):
+    def findBestAttribute(self, df):
         gains = []
         gini = []
         attributes = df.keys().tolist()
         attributes.remove('target')
         for attr in attributes:
-            if (heuristica == 'id3'):
+            if (self.heuristic == 'id3'):
                 gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
-            elif (heuristica == 'c45'):
+            elif (self.heuristic == 'c45'):
                 gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)))
-            elif (heuristica == "gini"):
+            elif (self.heuristic == "gini"):
                 gini.append(self.calculateGini(df, attr))
 
-        if(heuristica != "gini"):
+        if(self.heuristic != "gini"):
             return attributes[np.argmax(gains)]
         else:
             return attributes[np.argmin(gini)]
@@ -155,11 +156,11 @@ class DecisionTree(sklearn.base.BaseEstimator):
         # https://www.sharpsightlabs.com/blog/pandas-reset-index/
         return df[df[node] == value].reset_index(drop=True)
 
-    def createTree(self, df, tree2=None, heuristica="id3"):
+    def createTree(self, df, tree2=None):
 
 
         # Busquem l'atribut amb el màxim Gain d'informació
-        millorAtribut = self.findBestAttribute(df, heuristica=heuristica)
+        millorAtribut = self.findBestAttribute(df)
 
         # Agafem tots els valors únics de l'atribut amb més Gain
         attValue = np.unique(df[millorAtribut])
@@ -185,13 +186,13 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[millorAtribut][value] = self.createTree(subtable, heuristica=heuristica)
+                tree2[millorAtribut][value] = self.createTree(subtable)
 
         return tree2
 
 
-    def fit(self, df, Y=None, heuristica='id3'):
-        self.tree = self.createTree(df, heuristica=heuristica)
+    def fit(self, df, Y=None):
+        self.tree = self.createTree(df)
 
 
     def lookupOutput(self, row, subTree=None):
@@ -199,10 +200,10 @@ class DecisionTree(sklearn.base.BaseEstimator):
         # si no és un diccionari significa que hem arribat a una fulla, busquem quin és el seu output
         if not isinstance(subTree, dict):
 
-            # si hem arribat sense haver de fer probability approach simplement guardem la nova predicció
-            if not self.doingProbabilityApproach:
+            # si hem arribat sense haver de fer probabilistic approach simplement guardem la nova predicció
+            if not self.doingProbabilisticApproach:
                 self.predictions.append(subTree[0])
-            # en cas d'estar fent probability approach, llavors estem buscant múltiples camins la vegada
+            # en cas d'estar fent probabilistic approach, llavors estem buscant múltiples camins la vegada
             # en comptes d'afegir el output de la fulla, sumem al contador de la classe pertinent quantes mostres del training han arribat a aquesta fulla
             # mes endevant es mirarà quina classe té més mostres i s'fegirà coma predicció
             else:
@@ -223,14 +224,15 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
             # en cas que no existeixi aquest valor a l'arbre
             else:
-                # indiquem que fem probability approach per tal que ho sàpiguen les pròximes crides
-                self.doingProbabilityApproach = True
-                # cada una d'aquestes iteracions explorarà una branca del node actual (múltiples camins)
-                for val in valorsAtribut.keys():
-                    self.lookupOutput(row, valorsAtribut[val])
-
-                # El que hi havia abans de fer el probabilityApproach. Simplement dèiem que tenia la malaltia.
-                # self.predictions.append(1)
+                if  self.enableProbabilisticApproach:
+                    # indiquem que fem probabilistic approach per tal que ho sàpiguen les pròximes crides
+                    self.doingProbabilisticApproach = True
+                    # cada una d'aquestes iteracions explorarà una branca del node actual (múltiples camins)
+                    for val in valorsAtribut.keys():
+                        self.lookupOutput(row, valorsAtribut[val])
+                else:
+                    # El que hi havia abans de fer el probabilistic approach. Simplement dèiem que tenia la malaltia.
+                    self.predictions.append(1)
 
 
     def predict(self, df):
@@ -241,14 +243,14 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # reset d'atributs que segurament s'han modificat a la predicció anterior
             self.class0 = 0
             self.class1 = 0
-            self.doingProbabilityApproach = False
+            self.doingProbabilisticApproach = False
 
             # recorrem l'abre i busquem el resultat
             self.lookupOutput(row, self.tree)
 
-            # si durant l'exploració de l'arbre s'ha agut de fer probability approach,
+            # si durant l'exploració de l'arbre s'ha agut de fer probabilistic approach,
             # mirem quina classe té més probabilitats de ser la real i guardem el resultat a prediccions
-            if self.doingProbabilityApproach:
+            if self.doingProbabilisticApproach:
                 possibleOutcome = 1
                 if self.class0 > self.class1:
                     possibleOutcome = 0
@@ -273,6 +275,7 @@ def analysingData(df):
 def createDiscreteValues(df, categoriesNumber):
     # TODO de moment es fa amb intervals especificats, caldrà programar també el 2-way partition
 
+    # el cat.cades passa d'intervals a valors numèrics, necessari per tractar després amb ells (bàscicament f el mateix que el label encoding)
     df['age_cut'] = pd.cut(df['age'], categoriesNumber).cat.codes
     df['trestbps_cut'] = pd.cut(df['trestbps'], categoriesNumber).cat.codes
     df['chol_cut'] = pd.cut(df['chol'], categoriesNumber).cat.codes
@@ -349,7 +352,7 @@ def crossValidation(model, df, n_splits=5, shuffle=True):
         test = splits[i]
         train = pd.concat(train)
 
-        model.fit(train, heuristica='id3')
+        model.fit(train)
         predictions = model.predict(test)
         groundTruth = test['target'].tolist()
         # print("\n")
@@ -376,8 +379,8 @@ def main():
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     # train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree()
-    decisionTree.fit(train, 'id3')
+    decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
+    decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
     print(y_test)
@@ -394,7 +397,7 @@ def main():
         crossValScoresByMetric[metric] = {}
     for n in [4,6,7,8,9,10,11,12,13,14]:
         dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-        cv_results = crossValidation(DecisionTree(), dfDiscrete, n_splits=10)
+        cv_results = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
         print(cv_results)
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
@@ -416,13 +419,12 @@ def crossValidationSklearn(df):
     metrics = ('accuracy', 'precision')
     for metric in metrics:
         crossValScoresByMetric[metric] = {}
-    for n in [4, 6, 7, 8, 9, 10, 11, 12]:
+    for n in [4, 6, 7]:
         dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
 
         decisionTree = DecisionTree()
         X = dfDiscrete
         y = dfDiscrete["target"]
-        # TODO veure com passar-li arguments pròpis del model al cross_validate (pel tema del C4.5)
         cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
         print(cv_results)
 
