@@ -1,3 +1,4 @@
+import copy
 import statistics
 import sys
 from collections import Counter
@@ -112,7 +113,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return splitInfo
 
     def calculateGini(self, df, attribute):
-        counts = []
+        '''counts = []
         giniValues  = []
         giniValuesSub = []
         for value in df[attribute].unique():
@@ -127,8 +128,18 @@ class DecisionTree(sklearn.base.BaseEstimator):
         totalCount = np.sum(counts)
         gini = np.sum(np.multiply(giniValuesSub, np.divide(counts, totalCount)))
         giniValues.append(gini)
+        '''
+        diffsum = 0
+        x = df[attribute]
+        for i, xi in enumerate(x[:-1], 1):
+            diffsum += np.sum(np.abs(xi - x[i:]))
+        gini = 0
+        if (len(x) != 0):
+            aux = (len(x) ** 2 * np.mean(x))
+            gini = diffsum / aux
+        return gini
 
-        return giniValues
+        #return giniValues
 
 
 
@@ -443,7 +454,7 @@ def main():
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
@@ -455,6 +466,7 @@ def main():
 
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION
+    '''
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScoresByMetric = {}
     for metric in metrics:
@@ -466,7 +478,7 @@ def main():
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
     showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
-
+    '''
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(df)
