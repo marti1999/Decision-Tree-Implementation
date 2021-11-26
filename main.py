@@ -357,17 +357,17 @@ def main():
 
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION
-    metrics = ('accuracy', 'precision')
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScoresByMetric = {}
     for metric in metrics:
         crossValScoresByMetric[metric] = {}
-    for n in [4,6,7,8,9,10,11]:
+    for n in [4,6,7,8,9,10,11,12,13,14]:
         dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
         cv_results = crossValidation(DecisionTree(), dfDiscrete, n_splits=10)
         print(cv_results)
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    showMetricPlots(crossValScoresByMetric, metrics=['accuracy', 'precision', 'recall', 'f1Score'])
+    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
 
 
     # crossValidationSklearn(df)
