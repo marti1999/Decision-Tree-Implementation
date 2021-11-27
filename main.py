@@ -117,7 +117,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
         ret = -ret
 
         if (ret == 0):
-            ret = 0.001
+            ret = eps
         return -ret
 
 
