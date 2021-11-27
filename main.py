@@ -496,9 +496,24 @@ def TwoWaySplit(df, attributes, initialIntervals = 11):
     return df
 
 
+def recursive_print_dict( d, indent = 0 ):
+    for k, v in d.items():
+        if isinstance(v, dict):
+            print("\t" * indent, f"{k}:")
+            recursive_print_dict(v, indent+1)
+        else:
+            print("\t" * indent, f"{k}:{v}")
+
+
 def main():
 
     df = pd.read_csv("heart.csv")
+
+    # PROVES PER FER PRINT DE L'ARBRE
+    # tree = {'Weather': {            'Sunny': {'Humidity': {                'High': 'NO',                'Normal': 'YES'            }            },            'Cloudy': 'YES',            'Rainy': {'Wind': {                'Strong': 'NO',                'Weak': 'YES'            }            }}}
+    # print(json.dumps(tree, indent=4))
+    # pprint.pprint(tree)
+    # recursive_print_dict(tree, 2)
 
     # analysingData(df)
     df = fixMissingAndWrongValues(df)
@@ -509,38 +524,38 @@ def main():
 
 
     # UN SOL MODEL PER FER PROVES
-    # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
+    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    # dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='c45', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
     print(y_test)
     print(y_pred)
-    print("Accuracy: ", accuracy_score(y_test, y_pred), " categories: ", 7)
+    print("Accuracy: ", accuracy_score(y_test, y_pred))
     pprint.pprint(decisionTree.tree)
 
 
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION
-    # metrics = ('accuracy', 'precision', 'recall', 'f1Score')
-    # crossValScoresByMetric = {}
-    # for metric in metrics:
-    #     crossValScoresByMetric[metric] = {}
-    # for n in [4,6,7,8,9,10,11,12,13,14]:
-    #     dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-    #     cv_results = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
-    #     print(cv_results)
-    #     for metric in metrics:
-    #         crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    # showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    crossValScoresByMetric = {}
+    for metric in metrics:
+        crossValScoresByMetric[metric] = {}
+    for n in [4,6,7,8,9,10,11,12,13,14]:
+        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+        cv_results = crossValidation(DecisionTree(heuristic='gini', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
+        print(cv_results)
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
 
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
-    crossValidationSklearn(df)
-    compareWithSklearn(df)
+    # crossValidationSklearn(df)
+    # compareWithSklearn(df)
 
 
 
