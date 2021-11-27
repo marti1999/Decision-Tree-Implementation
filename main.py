@@ -262,6 +262,9 @@ def analysingData(df):
     df.hist(figsize=(8, 8))
     plt.show()
 
+
+
+
 def createDiscreteValues(df, categoriesNumber):
     # TODO Exercici 3: de moment es fa amb intervals especificats, caldrà programar també el 2-way partition
     # TODO Exercici 3: a part del 2-way partition, també es pot mirar de trobar el nombre d'invervals òptims per cada atribut
@@ -416,6 +419,54 @@ def crossValidation(model, df, n_splits=5, shuffle=True):
     return scores
 
 
+def TwoWaySplit(df, attribute, initialIntervals = 11):
+
+    attribute_cut = attribute + '_cut'
+    attribute_codes = attribute + '_codes'
+
+    # df = df.drop(df.columns.difference([attribute, 'target']), 1)
+    df[attribute_cut] = pd.cut(df[attribute], initialIntervals)
+    df[attribute_codes] = df[attribute_cut].cat.codes
+    sorted = df.sort_values(attribute_codes)
+    sortedValues = list(set(sorted[attribute_codes].tolist()))
+
+    bestSplitPoint = None
+    bestWeightedEntropy = 1
+
+    for i in range(len(sortedValues)-1):
+        midpoint = (sortedValues[i] + sortedValues[i+1])/2
+        dfLeft = df[df[attribute_codes] <= midpoint]
+        dfRight = df[df[attribute_codes] > midpoint]
+
+        countLeft0 = dfLeft[dfLeft['target']== 0].shape[0]
+        countLeft1 = dfLeft[dfLeft['target']== 1].shape[0]
+        countLeft = dfLeft.shape[0]
+        eLeft = -(countLeft0 / countLeft) * np.log2(countLeft0 / countLeft) - (countLeft1 / countLeft) * np.log2(countLeft1 / countLeft)
+
+        countRight0 = dfRight[dfRight['target'] == 0].shape[0]
+        countRight1 = dfRight[dfRight['target'] == 1].shape[0]
+        countRight = dfRight.shape[0]
+        eRight = -(countRight0 / countRight) * np.log2(countRight0 / countRight) - (countRight1 / countRight) * np.log2( countRight1 / countRight)
+
+        weigthedEntropy = countLeft / (countLeft + countRight) * eLeft + countRight / (countLeft + countRight) * eRight
+        if weigthedEntropy < bestWeightedEntropy:
+            bestWeightedEntropy = weigthedEntropy
+            bestSplitPoint = midpoint
+
+
+    splitPointInt = int(bestSplitPoint)
+    attributeMidPoint = int( df[df[attribute_codes] == splitPointInt].head(1)[attribute_cut].tolist()[0].right )
+    attributeSplitName = attribute + '>' + str(attributeMidPoint)
+    df[attributeSplitName] = np.nan
+
+    df.loc[df[attribute_codes] <= bestSplitPoint, attributeSplitName] = int(0)
+    df.loc[df[attribute_codes] > bestSplitPoint, attributeSplitName] = int(1)
+
+    df = df.drop(columns=[attribute, attribute_codes,attribute_cut])
+
+    return df
+
+
 def main():
 
     df = pd.read_csv("heart.csv")
@@ -426,6 +477,9 @@ def main():
     outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
     # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
     df = deleteRowsByIndex(df, outliersToDrop)
+
+    # implementat a mitjes...
+    # df = TwoWaySplit(df, 'age')
 
     # UN SOL MODEL PER FER PROVES
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
