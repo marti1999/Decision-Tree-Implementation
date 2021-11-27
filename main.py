@@ -111,25 +111,12 @@ class DecisionTree(sklearn.base.BaseEstimator):
         splitInfo = -np.sum(np.multiply(np.divide(counts, totalCount), np.log2(np.divide(counts, totalCount))))
         return splitInfo
 
-    def calculateGini(self, df, attribute):
-        counts = []
-        giniValues  = []
-        giniValuesSub = []
-        for value in df[attribute].unique():
-            subset = df[df[attribute] == value]
-            counts.append(subset.shape[0])
-            positives = subset[subset['target'] == 1]
-            negatives = subset[subset['target'] != 1]
-            giniSubindex = np.subtract(1, np.add(
-                np.square(np.divide(positives.shape[0], subset.shape[0])),
-                np.square(np.divide(negatives.shape[0], subset.shape[0]))))
-            giniValuesSub.append(giniSubindex)
-        totalCount = np.sum(counts)
-        gini = np.sum(np.multiply(giniValuesSub, np.divide(counts, totalCount)))
-        giniValues.append(gini)
 
-        return giniValues
+    def gini_impurity(self, y):
 
+        p = y.value_counts() / y.shape[0]
+        gini = 1 - np.sum(p ** 2)
+        return (gini)
 
 
     def gain(self, eDf, eAttr):
@@ -148,7 +135,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             elif (self.heuristic == 'c45'):
                 gains.append((self.datasetEntropy(df) - self.attributeEntropy(df, attr))/(self.splitInfo(df, attr)))
             elif (self.heuristic == "gini"):
-                gini.append(self.calculateGini(df, attr))
+                gini.append(self.gini_impurity(df[attr]))
 
         if(self.heuristic != "gini"):
             return attributes[np.argmax(gains)]
@@ -189,7 +176,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # sinó el valor portarà a un nou node amb un altre atribut
             # li passem el dataset amb les dades que entrarien dins d'aquest node
             else:
-                tree2[millorAtribut][value] = self.createTree(subtable)
+                tree2[millorAtribut][value] = self.createTree(subtable.drop(columns=[millorAtribut]))
 
         return tree2
 
@@ -433,17 +420,18 @@ def main():
 
     df = pd.read_csv("heart.csv")
 
+    # analysingData(df)
     df = fixMissingAndWrongValues(df)
-    outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
-    df = deleteRowsByIndex(df, outliersToDrop)
 
-    #analysingData(df)
+    outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
+    # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
+    df = deleteRowsByIndex(df, outliersToDrop)
 
     # UN SOL MODEL PER FER PROVES
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
@@ -455,17 +443,17 @@ def main():
 
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION
-    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
-    crossValScoresByMetric = {}
-    for metric in metrics:
-        crossValScoresByMetric[metric] = {}
-    for n in [4,6,7,8,9,10,11,12,13,14]:
-        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-        cv_results = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
-        print(cv_results)
-        for metric in metrics:
-            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
+    # metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    # crossValScoresByMetric = {}
+    # for metric in metrics:
+    #     crossValScoresByMetric[metric] = {}
+    # for n in [4,6,7,8,9,10,11,12,13,14]:
+    #     dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+    #     cv_results = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
+    #     print(cv_results)
+    #     for metric in metrics:
+    #         crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+    # showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
 
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
