@@ -441,9 +441,9 @@ def TwoWaySplit(df, attributes, initialIntervals = 11):
     for attribute in attributes:
         attribute_cut = attribute + '_cut'
         attribute_codes = attribute + '_codes'
+        maxIntervals = min(initialIntervals, df[attribute].nunique())
 
-        # df = df.drop(df.columns.difference([attribute, 'target']), 1)
-        df[attribute_cut] = pd.cut(df[attribute], initialIntervals)
+        df[attribute_cut] = pd.cut(df[attribute], maxIntervals)
         df[attribute_codes] = df[attribute_cut].cat.codes
         sorted = df.sort_values(attribute_codes)
         sortedValues = list(set(sorted[attribute_codes].tolist()))
@@ -501,7 +501,7 @@ def main():
 
     # UN SOL MODEL PER FER PROVES
     # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
+    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
     decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
