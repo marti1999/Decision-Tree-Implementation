@@ -393,28 +393,26 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.show()
         #print(json.dumps(crossValScoresByN, indent=4))
 
-def showMetricTwoHeuristicsPlots(crossValScoresByMetric, crossValScoresByMetric2, metrics=None):
+def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=None):
     for metric in metrics:
-        crossValScoresByN = crossValScoresByMetric[metric]
-        crossValScoresByN2 = crossValScoresByMetric2[metric]
-        # labels, data = crossValScoresByN.keys(), crossValScoresByN.values()
-        # plt.boxplot(data)
-        # plt.xticks(range(1, len(labels) + 1), labels)
-        # plt.ylim([0.5, 1])
-        # plt.xlabel("number of categories")
-        # plt.ylabel(metric)
-        # plt.show()
-        for k in crossValScoresByN.keys():
-            crossValScoresByN[k] = statistics.mean(crossValScoresByN[k])
-            crossValScoresByN2[k] = statistics.mean(crossValScoresByN2[k])
-        plt.title("comparació heuristiques, probabilistic approach = false")
 
-        plt.plot(list(crossValScoresByN.keys()), list(crossValScoresByN.values()))
-        plt.plot(list(crossValScoresByN2.keys()), list(crossValScoresByN2.values()))
+        crossValScoresByN = []
+        for cvs in crossValScoresByMetric:
+            crossValScoresByN.append(cvs[metric])
+
+        for cvs in crossValScoresByN:
+            for k in cvs.keys():
+                cvs[k] = statistics.mean(cvs[k])
+
+        plt.title("Comparació heurístiques, probabilistic approach = false")
+
+        for cvs in crossValScoresByN:
+            plt.plot(list(cvs.keys()), list(cvs.values()))
+
         plt.ylim([0.5, 1])
-        plt.xlabel("number of intervals")
-        plt.ylabel("average " + metric)
-        plt.legend(['Gini', 'Id3'])
+        plt.xlabel("Number of intervals")
+        plt.ylabel("Average " + metric)
+        plt.legend(legend)
         plt.show()
         #print(json.dumps(crossValScoresByN, indent=4))
 
@@ -548,18 +546,50 @@ def main():
 
     # analysingData(df)
     #plotNull(df);
-    df = fixMissingAndWrongValues(df)
 
+    df = fixMissingAndWrongValues(df)
     outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
     # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
     df = deleteRowsByIndex(df, outliersToDrop)
 
+    # UN SOL MODEL PER FER PROVES
+    test1Model(df)
 
+    # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
+    testCrossvalidationHeuristics(df, ['gini', 'id3'])
+
+    # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
+    # crossValidationSklearn(df)
+    # compareWithSklearn(df)
+
+
+def testCrossvalidationHeuristics(df, heuristics, proba=False):
+
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    crossValScores = []
+
+    for heuristic in heuristics:
+        crossValScoresByMetric = {}
+        for metric in metrics:
+            crossValScoresByMetric[metric] = {}
+        for n in [4, 6]:
+            dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba), dfDiscrete)
+            # print(cv_results)
+            for metric in metrics:
+                crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+        crossValScores.append(crossValScoresByMetric)
+
+    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = heuristics)
+
+
+def test1Model(df):
     # UN SOL MODEL PER FER PROVES
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     # dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
-    train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
+    train, test = train_test_split(dfDiscrete, test_size=0.2,
+                                   random_state=0)  # per si es necessita tenir sempre el mateix split
     decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
@@ -568,35 +598,6 @@ def main():
     print(y_pred)
     print("Accuracy: ", accuracy_score(y_test, y_pred))
     pprint.pprint(decisionTree.tree)
-
-
-
-    # PER PROVAR EL NOSTRE CROSS VALIDATION
-    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
-    crossValScoresByMetric = {}
-    crossValScoresByMetric2 = {}
-    for metric in metrics:
-        crossValScoresByMetric[metric] = {}
-        crossValScoresByMetric2[metric] = {}
-    for n in [4,6,7,8,9]:
-        dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-        cv_resultsGini = crossValidation(DecisionTree(heuristic='gini', enableProbabilisticApproach=False), dfDiscrete)
-        cv_resultsId3 = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=False), dfDiscrete)
-        #print(cv_results)
-        for metric in metrics:
-            crossValScoresByMetric[metric][n] = cv_resultsGini["test_" + metric]
-            crossValScoresByMetric2[metric][n] = cv_resultsId3["test_" + metric]
-    #showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
-    showMetricTwoHeuristicsPlots(crossValScoresByMetric, crossValScoresByMetric2, metrics=list(metrics))
-
-
-    # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
-    # crossValidationSklearn(df)
-    # compareWithSklearn(df)
-
-
-
-
 
 
 def crossValidationSklearn(df):
