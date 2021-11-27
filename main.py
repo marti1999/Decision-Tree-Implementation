@@ -149,6 +149,8 @@ class DecisionTree(sklearn.base.BaseEstimator):
     def createTree(self, df, tree2=None):
 
 
+
+
         # Busquem l'atribut amb el màxim Gain d'informació
         millorAtribut = self.findBestAttribute(df)
 
@@ -163,6 +165,18 @@ class DecisionTree(sklearn.base.BaseEstimator):
         # L'arbre es construirà anant cridant la funció de forma recursiva.
 
         # Cada valor portarà a un dels nous nodes (atributs)
+
+        if df.shape[1] == 2 and len(attValue) == 1:
+            count0 = df[df['target'] == 0].shape[0]
+            count1 = df[df['target'] == 1].shape[0]
+            outcome = 1
+            count = count1
+            if count0>count1:
+                outcome = 0
+                count = count0
+            tree2[millorAtribut][attValue[0]] = (outcome, count)
+            return tree2
+
         for value in attValue:
 
             # mirem si amb aquest valor tots els resultats són iguals
@@ -174,8 +188,9 @@ class DecisionTree(sklearn.base.BaseEstimator):
                 # guardem tant el resultat com el nombre de casos que arriben a aquesta fulla
                 tree2[millorAtribut][value] = (clValue[0], counts[0])
             # sinó el valor portarà a un nou node amb un altre atribut
-            # li passem el dataset amb les dades que entrarien dins d'aquest node
+            # li passem el dataset amb les dades que entrarien dins d'aquest node, també treiem l'atribut que ja s'ha mirat doncs no el necessitem més
             else:
+
                 tree2[millorAtribut][value] = self.createTree(subtable.drop(columns=[millorAtribut]))
 
         return tree2
@@ -419,50 +434,54 @@ def crossValidation(model, df, n_splits=5, shuffle=True):
     return scores
 
 
-def TwoWaySplit(df, attribute, initialIntervals = 11):
-
-    attribute_cut = attribute + '_cut'
-    attribute_codes = attribute + '_codes'
-
-    # df = df.drop(df.columns.difference([attribute, 'target']), 1)
-    df[attribute_cut] = pd.cut(df[attribute], initialIntervals)
-    df[attribute_codes] = df[attribute_cut].cat.codes
-    sorted = df.sort_values(attribute_codes)
-    sortedValues = list(set(sorted[attribute_codes].tolist()))
-
-    bestSplitPoint = None
-    bestWeightedEntropy = 1
-
-    for i in range(len(sortedValues)-1):
-        midpoint = (sortedValues[i] + sortedValues[i+1])/2
-        dfLeft = df[df[attribute_codes] <= midpoint]
-        dfRight = df[df[attribute_codes] > midpoint]
-
-        countLeft0 = dfLeft[dfLeft['target']== 0].shape[0]
-        countLeft1 = dfLeft[dfLeft['target']== 1].shape[0]
-        countLeft = dfLeft.shape[0]
-        eLeft = -(countLeft0 / countLeft) * np.log2(countLeft0 / countLeft) - (countLeft1 / countLeft) * np.log2(countLeft1 / countLeft)
-
-        countRight0 = dfRight[dfRight['target'] == 0].shape[0]
-        countRight1 = dfRight[dfRight['target'] == 1].shape[0]
-        countRight = dfRight.shape[0]
-        eRight = -(countRight0 / countRight) * np.log2(countRight0 / countRight) - (countRight1 / countRight) * np.log2( countRight1 / countRight)
-
-        weigthedEntropy = countLeft / (countLeft + countRight) * eLeft + countRight / (countLeft + countRight) * eRight
-        if weigthedEntropy < bestWeightedEntropy:
-            bestWeightedEntropy = weigthedEntropy
-            bestSplitPoint = midpoint
+def TwoWaySplit(df, attributes, initialIntervals = 11):
 
 
-    splitPointInt = int(bestSplitPoint)
-    attributeMidPoint = int( df[df[attribute_codes] == splitPointInt].head(1)[attribute_cut].tolist()[0].right )
-    attributeSplitName = attribute + '>' + str(attributeMidPoint)
-    df[attributeSplitName] = np.nan
+    for attribute in attributes:
+        attribute_cut = attribute + '_cut'
+        attribute_codes = attribute + '_codes'
 
-    df.loc[df[attribute_codes] <= bestSplitPoint, attributeSplitName] = int(0)
-    df.loc[df[attribute_codes] > bestSplitPoint, attributeSplitName] = int(1)
+        # df = df.drop(df.columns.difference([attribute, 'target']), 1)
+        df[attribute_cut] = pd.cut(df[attribute], initialIntervals)
+        df[attribute_codes] = df[attribute_cut].cat.codes
+        sorted = df.sort_values(attribute_codes)
+        sortedValues = list(set(sorted[attribute_codes].tolist()))
 
-    df = df.drop(columns=[attribute, attribute_codes,attribute_cut])
+        bestSplitPoint = None
+        bestWeightedEntropy = 1
+
+        for i in range(len(sortedValues)-1):
+            midpoint = (sortedValues[i] + sortedValues[i+1])/2
+            dfLeft = df[df[attribute_codes] <= midpoint]
+            dfRight = df[df[attribute_codes] > midpoint]
+
+            countLeft0 = dfLeft[dfLeft['target']== 0].shape[0]+eps
+            countLeft1 = dfLeft[dfLeft['target']== 1].shape[0]+eps
+            countLeft = dfLeft.shape[0]
+            eLeft = -(countLeft0 / countLeft) * np.log2(countLeft0 / countLeft) - (countLeft1 / countLeft) * np.log2(countLeft1 / countLeft)
+
+            countRight0 = dfRight[dfRight['target'] == 0].shape[0] +eps
+            countRight1 = dfRight[dfRight['target'] == 1].shape[0]+eps
+            countRight = dfRight.shape[0]
+            eRight = -(countRight0 / countRight) * np.log2(countRight0 / countRight) - (countRight1 / countRight) * np.log2( countRight1 / countRight)
+
+            weigthedEntropy = countLeft / (countLeft + countRight) * eLeft + countRight / (countLeft + countRight) * eRight
+            if weigthedEntropy < bestWeightedEntropy:
+                bestWeightedEntropy = weigthedEntropy
+                bestSplitPoint = midpoint
+
+
+        splitPointInt = int(bestSplitPoint)
+        attributeMidPoint = int( df[df[attribute_codes] == splitPointInt].head(1)[attribute_cut].tolist()[0].right )
+        # https://stackoverflow.com/questions/45307376/pandas-df-itertuples-renaming-dataframe-columns-when-printing
+        # attributeSplitName = attribute + '>' + str(attributeMidPoint)
+        attributeSplitName = attribute + 'GT' + str(attributeMidPoint)
+        df[attributeSplitName] = np.nan
+
+        df.loc[df[attribute_codes] <= bestSplitPoint, attributeSplitName] = int(0)
+        df.loc[df[attribute_codes] > bestSplitPoint, attributeSplitName] = int(1)
+
+        df = df.drop(columns=[attribute, attribute_codes,attribute_cut])
 
     return df
 
@@ -478,14 +497,13 @@ def main():
     # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
     df = deleteRowsByIndex(df, outliersToDrop)
 
-    # implementat a mitjes...
-    # df = TwoWaySplit(df, 'age')
 
     # UN SOL MODEL PER FER PROVES
     dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    # dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
