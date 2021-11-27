@@ -12,9 +12,12 @@ import sklearn
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
-from sklearn import metrics
-import json
 from sklearn.model_selection import train_test_split, cross_validate, KFold
+from sklearn import metrics
+
+import seaborn as sns
+
+import json
 
 # numero més petit possible, per quan obtenim un 0 al denominador fer 0 + eps
 eps = np.finfo(float).eps
@@ -390,6 +393,31 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.show()
         #print(json.dumps(crossValScoresByN, indent=4))
 
+def showMetricTwoHeuristicsPlots(crossValScoresByMetric, crossValScoresByMetric2, metrics=None):
+    for metric in metrics:
+        crossValScoresByN = crossValScoresByMetric[metric]
+        crossValScoresByN2 = crossValScoresByMetric2[metric]
+        # labels, data = crossValScoresByN.keys(), crossValScoresByN.values()
+        # plt.boxplot(data)
+        # plt.xticks(range(1, len(labels) + 1), labels)
+        # plt.ylim([0.5, 1])
+        # plt.xlabel("number of categories")
+        # plt.ylabel(metric)
+        # plt.show()
+        for k in crossValScoresByN.keys():
+            crossValScoresByN[k] = statistics.mean(crossValScoresByN[k])
+            crossValScoresByN2[k] = statistics.mean(crossValScoresByN2[k])
+        plt.title("comparació heuristiques, probabilistic approach = false")
+
+        plt.plot(list(crossValScoresByN.keys()), list(crossValScoresByN.values()))
+        plt.plot(list(crossValScoresByN2.keys()), list(crossValScoresByN2.values()))
+        plt.ylim([0.5, 1])
+        plt.xlabel("number of intervals")
+        plt.ylabel("average " + metric)
+        plt.legend(['Gini', 'Id3'])
+        plt.show()
+        #print(json.dumps(crossValScoresByN, indent=4))
+
 
 def trainTestSplit(df, trainSize=0.8, shuffle=True):
     if shuffle:
@@ -504,6 +532,9 @@ def recursive_print_dict( d, indent = 0 ):
         else:
             print("\t" * indent, f"{k}:{v}")
 
+def plotNull(df):
+    sns.heatmap(df.isnull(), yticklabels=False, cbar=False, cmap='viridis')
+    plt.show()
 
 def main():
 
@@ -516,6 +547,7 @@ def main():
     # recursive_print_dict(tree, 2)
 
     # analysingData(df)
+    #plotNull(df);
     df = fixMissingAndWrongValues(df)
 
     outliersToDrop = detectOutliers(df, df.columns.values.tolist(), 2)
@@ -542,15 +574,20 @@ def main():
     # PER PROVAR EL NOSTRE CROSS VALIDATION
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScoresByMetric = {}
+    crossValScoresByMetric2 = {}
     for metric in metrics:
         crossValScoresByMetric[metric] = {}
-    for n in [4,6,7,8,9,10,11,12,13,14]:
+        crossValScoresByMetric2[metric] = {}
+    for n in [4,6,7,8,9]:
         dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-        cv_results = crossValidation(DecisionTree(heuristic='gini', enableProbabilisticApproach=True), dfDiscrete, n_splits=10)
-        print(cv_results)
+        cv_resultsGini = crossValidation(DecisionTree(heuristic='gini', enableProbabilisticApproach=False), dfDiscrete)
+        cv_resultsId3 = crossValidation(DecisionTree(heuristic='id3', enableProbabilisticApproach=False), dfDiscrete)
+        #print(cv_results)
         for metric in metrics:
-            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
-    showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
+            crossValScoresByMetric[metric][n] = cv_resultsGini["test_" + metric]
+            crossValScoresByMetric2[metric][n] = cv_resultsId3["test_" + metric]
+    #showMetricPlots(crossValScoresByMetric, metrics=list(metrics))
+    showMetricTwoHeuristicsPlots(crossValScoresByMetric, crossValScoresByMetric2, metrics=list(metrics))
 
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
