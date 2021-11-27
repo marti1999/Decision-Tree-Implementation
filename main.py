@@ -85,7 +85,6 @@ class DecisionTree(sklearn.base.BaseEstimator):
                 entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
             outerFraction = den / len(df)
             attrEntropy += -outerFraction * entropyEachValue
-
         return abs(attrEntropy)
 
     def splitInfo(self, df, attribute):
@@ -104,13 +103,32 @@ class DecisionTree(sklearn.base.BaseEstimator):
             attrSplitInfo += -outerFraction * np.log2(den/len(df))
 
         return abs(attrSplitInfo)'''
+        '''
         counts = []
         for value in df[attribute].unique():
             subset = df[df[attribute] == value]
             counts.append(subset.shape[0])
         totalCount = np.sum(counts)
         splitInfo = -np.sum(np.multiply(np.divide(counts, totalCount), np.log2(np.divide(counts, totalCount))))
-        return splitInfo
+        '''
+        
+        x = df[attribute]
+        splitIClasses = {}
+        ret = 0
+        for element in x.unique():
+            splitIClasses[element] = 0
+            #Cada element different fa de index per a un enter que es el nombre de vegades que es repeteix aquell valor.
+            for valor in x:
+                if (valor == element):
+                    splitIClasses[element] += 1;
+        for classe in splitIClasses:
+            ret += (splitIClasses[classe]/df.shape[0]) * np.log2(splitIClasses[classe]/df.shape[0])
+        ret = -ret
+        
+        
+        if (ret == 0):
+                ret = 0.001
+        return -ret
 
     def calculateGini(self, df, attribute):
         '''counts = []
@@ -535,7 +553,7 @@ def main():
     dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='c45', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
@@ -561,8 +579,8 @@ def main():
 
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
-    # crossValidationSklearn(df)
-    # compareWithSklearn(df)
+    crossValidationSklearn(df)
+    compareWithSklearn(df)
 
 
 
