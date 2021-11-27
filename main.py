@@ -129,6 +129,10 @@ class DecisionTree(sklearn.base.BaseEstimator):
         gini = []
         attributes = df.keys().tolist()
         attributes.remove('target')
+
+        if len(attributes) == 0:
+            print("aquí")
+
         for attr in attributes:
             if (self.heuristic == 'id3'):
                 gains.append(self.datasetEntropy(df) - self.attributeEntropy(df, attr))
@@ -147,10 +151,6 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return df[df[node] == value].reset_index(drop=True)
 
     def createTree(self, df, tree2=None):
-
-
-
-
         # Busquem l'atribut amb el màxim Gain d'informació
         millorAtribut = self.findBestAttribute(df)
 
@@ -163,25 +163,14 @@ class DecisionTree(sklearn.base.BaseEstimator):
             tree2[millorAtribut] = {}
 
         # L'arbre es construirà anant cridant la funció de forma recursiva.
-
         # Cada valor portarà a un dels nous nodes (atributs)
-
-        if df.shape[1] == 2 and len(attValue) == 1:
-            count0 = df[df['target'] == 0].shape[0]
-            count1 = df[df['target'] == 1].shape[0]
-            outcome = 1
-            count = count1
-            if count0>count1:
-                outcome = 0
-                count = count0
-            tree2[millorAtribut][attValue[0]] = (outcome, count)
-            return tree2
-
         for value in attValue:
 
             # mirem si amb aquest valor tots els resultats són iguals
             subtable = self.get_subtable(df, millorAtribut, value)
             clValue, counts = np.unique(subtable['target'], return_counts=True)
+
+
 
             # si tots són iguals llavors tenim una fulla
             if len(counts) == 1:
@@ -191,7 +180,19 @@ class DecisionTree(sklearn.base.BaseEstimator):
             # li passem el dataset amb les dades que entrarien dins d'aquest node, també treiem l'atribut que ja s'ha mirat doncs no el necessitem més
             else:
 
-                tree2[millorAtribut][value] = self.createTree(subtable.drop(columns=[millorAtribut]))
+                # cas en que ja no quedi cap més atribut a preguntar però hi hagi diferents outcomes
+                if subtable.shape[1] == 2:
+                    count0 = subtable[subtable['target'] == 0].shape[0]
+                    count1 = subtable[subtable['target'] == 1].shape[0]
+                    outcome = 1
+                    count = count1
+                    if count0 > count1:
+                        outcome = 0
+                        count = count0
+                    tree2[millorAtribut][value] = (outcome, count)
+                else:
+
+                    tree2[millorAtribut][value] = self.createTree(subtable.drop(columns=[millorAtribut]))
 
         return tree2
 
@@ -499,11 +500,11 @@ def main():
 
 
     # UN SOL MODEL PER FER PROVES
-    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    # dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
+    # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2, random_state=0) # per si es necessita tenir sempre el mateix split
-    decisionTree = DecisionTree(heuristic='id3', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
     decisionTree.fit(train)
     y_pred = decisionTree.predict(test)
     y_test = test['target'].tolist()
