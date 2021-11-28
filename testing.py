@@ -41,7 +41,7 @@ def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=
     crossValScores = []
 
     for prob in proba:
-        print("   ",proba)
+        print("   ",prob)
         crossValScoresByMetric = {}
         for metric in metrics:
             crossValScoresByMetric[metric] = {}

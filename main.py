@@ -22,7 +22,7 @@ def main():
     test1Model(copy.deepcopy(df))
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
-    print("Fent apartat 1 (l'heurística c45 triga prop de 13 minuts)")
+    print("Fent apartat 1 (l'heurística c45 triga prop de 10 minuts)")
     testCrossvalidationHeuristics(copy.deepcopy(df), ['id3', 'c45', 'gini'], intervals=[4, 6, 7, 8, 9, 10, 11])
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I PROBABILISTIC APPROACH
