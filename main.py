@@ -393,7 +393,7 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.show()
         #print(json.dumps(crossValScoresByN, indent=4))
 
-def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=None):
+def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=None, title="Comparació heurístiques, probabilistic approach = false"):
     for metric in metrics:
 
         crossValScoresByN = []
@@ -404,7 +404,7 @@ def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=No
             for k in cvs.keys():
                 cvs[k] = statistics.mean(cvs[k])
 
-        plt.title("Comparació heurístiques, probabilistic approach = false")
+        plt.title(title)
 
         for cvs in crossValScoresByN:
             plt.plot(list(cvs.keys()), list(cvs.values()))
@@ -417,6 +417,9 @@ def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=No
         #print(json.dumps(crossValScoresByN, indent=4))
 
 
+
+
+
 def trainTestSplit(df, trainSize=0.8, shuffle=True):
     if shuffle:
         df = df.sample(frac=1).reset_index(drop=True)
@@ -426,7 +429,7 @@ def trainTestSplit(df, trainSize=0.8, shuffle=True):
     return train, test
 
 
-def kFoldSplit(df, n_splits=5):
+def kFoldSplit(df, n_splits=10):
     splits = []
     splitSize = int(df.shape[0]/n_splits)
     for i in range(n_splits):
@@ -435,7 +438,7 @@ def kFoldSplit(df, n_splits=5):
     return splits
 
 
-def crossValidation(model, df, n_splits=5, shuffle=True):
+def crossValidation(model, df, n_splits=10, shuffle=True):
     if shuffle:
         df = df.sample(frac=1).reset_index(drop=True)
     splits = kFoldSplit(df, n_splits)
@@ -456,9 +459,6 @@ def crossValidation(model, df, n_splits=5, shuffle=True):
         model.fit(train)
         predictions = model.predict(test)
         groundTruth = test['target'].tolist()
-        # print("\n")
-        # print(groundTruth)
-        # print(predictions)
         accuracy.append(accuracy_score(groundTruth, predictions))
         precision.append(precision_score(groundTruth, predictions))
         recall.append(recall_score(groundTruth, predictions))
@@ -556,14 +556,17 @@ def main():
     # test1Model(df)
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
-    testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4,6,7,8,7,9,10,11,12,13])
+    # testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4,6,7,8,7,9,10,11,12,13])
+
+    # PER PROVAR EL NOSTRE CROSS VALIDATION I PROBABILISTIC APPROACH
+    testCrossvalidationProbabilisticApproach(df, [False, True],[4,6,7,8,7,9,10,11,12,13], heuristic='gini')
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(df)
     # compareWithSklearn(df)
 
 
-def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11], proba=False):
+def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11,12,13], proba=False, n_splits=10):
 
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScores = []
@@ -575,13 +578,33 @@ def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11],
             crossValScoresByMetric[metric] = {}
         for n in intervals:
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba), dfDiscrete)
+            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba), dfDiscrete, n_splits=n_splits)
             # print(cv_results)
             for metric in metrics:
                 crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
 
     showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = heuristics)
+
+def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=[4,6,7,8,7,9,10,11,12,13], heuristic='gini'):
+
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    crossValScores = []
+
+    for prob in proba:
+        print(heuristic)
+        crossValScoresByMetric = {}
+        for metric in metrics:
+            crossValScoresByMetric[metric] = {}
+        for n in intervals:
+            dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
+            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=prob), dfDiscrete)
+            # print(cv_results)
+            for metric in metrics:
+                crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+        crossValScores.append(crossValScoresByMetric)
+
+    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = proba,title='Probabilistic approach, heuristica = ' + heuristic)
 
 
 def test1Model(df):
