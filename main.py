@@ -47,7 +47,7 @@ def main():
     # testCrossvalidationProbabilisticApproach(df, [False, True], intervals=[4, 6], heuristic='gini')
 
     # PER PROVAR EL TWO-WAY SPLIT
-    testCrossvalidationTwoWaySplit(df, intervals=[5, 10], heuristic='gini')
+    testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20,30, 40, 50, 60, 70, 100, 200, 500], heuristic='gini')
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(df)

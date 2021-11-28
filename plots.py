@@ -62,12 +62,18 @@ def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Compar
                 scores.append(statistics.mean(cvs[k]))
 
 
-        fig = plt.figure()
-        ax = fig.add_axes([0,0,1,1])
+
+
         xlabels = legend
         yvalues = scores
-        ax.bar(xlabels, yvalues)
-        # plt.title(title)
+
+        x_pos = [i for i, _ in enumerate(xlabels)]
+        plt.bar(x_pos, yvalues)
+        plt.xlabel("Initial invertals")
+        plt.ylabel(metric)
+        plt.title(title)
+        plt.xticks(x_pos, xlabels)
+        plt.ylim([0.6, 0.9])
         plt.show()
 
         #print(json.dumps(crossValScoresByN, indent=4))
