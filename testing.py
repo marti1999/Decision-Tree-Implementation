@@ -10,6 +10,7 @@ from arbredecisio import DecisionTree
 from preprocessing import createDiscreteValues, TwoWaySplit
 from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix
 from modelSelection import crossValidation
+from randomForest import RandomForest
 
 
 def testCrossvalidationHeuristics(df, heuristics, intervals=[4, 6, 7, 8, 7, 9, 10, 11, 12, 13], proba=False,
@@ -131,7 +132,16 @@ def test1Model(df):
     plotConfusionMatrix(y_pred, y_test)
     print(classification_report(y_test, y_pred, labels=[0,1]))
 
-
+def testRandomForest(df):
+    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
+    train, test = train_test_split(dfDiscrete, test_size=0.2,
+                                   random_state=0)  # per si es necessita tenir sempre el mateix split
+    rf = RandomForest(n_trees=5, heuristic='gini', enableProbabilisticApproach=True)
+    rf.fit(train)
+    y_pred = rf.predict(test)
+    y_test = test['target'].tolist()
+    plotConfusionMatrix(y_pred, y_test)
+    print(classification_report(y_test, y_pred))
 
 def crossValidationSklearn(df):
     kf = KFold(n_splits=10, random_state=None, shuffle=True)
