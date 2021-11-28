@@ -113,7 +113,6 @@ def testExecutionTime2waysplitVSintervals(df, heuristic='gini', n_splits=10, pro
 
 
 def test1Model(df):
-    # UN SOL MODEL PER FER PROVES
     # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)

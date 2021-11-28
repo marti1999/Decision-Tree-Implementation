@@ -36,7 +36,6 @@ class DecisionTree(sklearn.base.BaseEstimator):
             entropy += p * np.log2(p)
 
         entropy = entropy * -1
-        # print(entropy)
         return entropy
 
     def attributeEntropy(self, df, attribute):
@@ -57,21 +56,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
         return abs(attrEntropy)
 
     def splitInfo(self, df, attribute):
-        '''results = df.target.unique()
-        attrValues = df[attribute].unique()
 
-        attrSplitInfo = 0
-        for value in attrValues:
-            entropyEachValue = 0
-            for result in results:
-                num = len(df[attribute][df[attribute] == value][df.target == result])
-                den = len(df[attribute][df[attribute] == value])
-                innerFraction = num / (den + eps)
-                entropyEachValue += -innerFraction * np.log2(innerFraction + eps)
-            outerFraction = den / len(df)
-            attrSplitInfo += -outerFraction * np.log2(den/len(df))
-
-        return abs(attrSplitInfo)'''
         x = df[attribute]
         splitIClasses = {}
         ret = 0
@@ -92,6 +77,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
     def gini_impurity(self, y):
 
+        # el np.sum funciona com a sumatori, simplifica molt la feina
         p = y.value_counts() / y.shape[0]
         gini = 1 - np.sum(p ** 2)
         return (gini)
@@ -107,8 +93,6 @@ class DecisionTree(sklearn.base.BaseEstimator):
         attributes = df.keys().tolist()
         attributes.remove('target')
 
-        if len(attributes) == 0:
-            print("aquí")
 
         for attr in attributes:
             if (self.heuristic == 'id3'):
@@ -139,7 +123,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
             tree2 = {}
             tree2[millorAtribut] = {}
 
-        # L'arbre es construirà anant cridant la funció de forma recursiva.
+        # L'arbre es construirà cridant a la funció de forma recursiva.
         # Cada valor portarà a un dels nous nodes (atributs)
         for value in attValue:
 
@@ -147,17 +131,15 @@ class DecisionTree(sklearn.base.BaseEstimator):
             subtable = self.get_subtable(df, millorAtribut, value)
             clValue, counts = np.unique(subtable['target'], return_counts=True)
 
-
-
             # si tots són iguals llavors tenim una fulla
             if len(counts) == 1:
                 # guardem tant el resultat com el nombre de casos que arriben a aquesta fulla
                 tree2[millorAtribut][value] = (clValue[0], counts[0])
+
             # sinó el valor portarà a un nou node amb un altre atribut
-            # li passem el dataset amb les dades que entrarien dins d'aquest node, també treiem l'atribut que ja s'ha mirat doncs no el necessitem més
             else:
 
-                # cas en que ja no quedi cap més atribut a preguntar però hi hagi diferents outcomes
+                # cas en que ja no quedi cap més atribut a preguntar però hi hagi diferents outcomes es crea una fulla
                 if subtable.shape[1] == 2:
                     count0 = subtable[subtable['target'] == 0].shape[0]
                     count1 = subtable[subtable['target'] == 1].shape[0]
@@ -168,7 +150,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
                         count = count0
                     tree2[millorAtribut][value] = (outcome, count)
                 else:
-
+                    # li passem el dataset amb les dades que entrarien dins d'aquest node, també treiem l'atribut que ja s'ha mirat doncs no el necessitem més
                     tree2[millorAtribut][value] = self.createTree(subtable.drop(columns=[millorAtribut]))
 
         return tree2
@@ -180,7 +162,7 @@ class DecisionTree(sklearn.base.BaseEstimator):
 
     def lookupOutput(self, row, subTree=None):
 
-        # si no és un diccionari significa que hem arribat a una fulla, busquem quin és el seu output
+        # si no és un diccionari, significa que hem arribat a una fulla, busquem quin és el seu output
         if not isinstance(subTree, dict):
 
             # si hem arribat sense haver de fer probabilistic approach simplement guardem la nova predicció
@@ -238,6 +220,5 @@ class DecisionTree(sklearn.base.BaseEstimator):
                 if self.class0 > self.class1:
                     possibleOutcome = 0
                 self.predictions.append(possibleOutcome)
-
 
         return self.predictions

@@ -11,10 +11,8 @@ eps = np.finfo(float).eps
 def analysingData(df):
     print(df.describe())
     print(df.info())
-
-    for name in df.columns:
-        print(len(pd.unique(df[name])), name, " unique values: ")
-
+    # for name in df.columns:
+    #     print(len(pd.unique(df[name])), name, " unique values: ")
     sns.boxplot(data=df)
     plt.show()
     df.hist(figsize=(8, 8))
@@ -31,15 +29,7 @@ def createDiscreteValues(df, categoriesNumber):
     df['thalach_cut'] = pd.cut(df['thalach'], categoriesNumber).cat.codes
     df['oldpeak_cut'] = pd.cut(df['oldpeak'], categoriesNumber).cat.codes
 
-    # print(df[['age', 'age_qcut', 'age_cut']].head(10))
-    # print(df[['age_qcut']].value_counts())
-    # print(df[['age_cut']].value_counts())
-
     dfDiscrete = df.drop(columns=['age', 'trestbps', 'chol', 'thalach', 'oldpeak'])
-
-    #print("\n\n\n")
-    #for name in dfDiscrete.columns:
-        #print(len(pd.unique(dfDiscrete[name])), name, " unique values: ")
 
     return dfDiscrete
 
@@ -60,7 +50,6 @@ def fixMissingAndWrongValues(df):
     df.loc[df['restecg'] < 0, 'restecg'] = df['restecg'].mode()[0]
     df.loc[df['cp'] < 0, 'cp'] = df['cp'].mode()[0]
     df.loc[df['cp'] > 3, 'cp'] = df['cp'].mode()[0]
-
 
     return df
 
@@ -96,6 +85,7 @@ def detectOutliers(df, atributs, maxOutliers):
 
 
 def deleteRowsByIndex(df, indexs):
+    # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
     rows = df.index[indexs]
     # https://stackoverflow.com/questions/43893457/understanding-inplace-true
     df.drop(rows, inplace=True)

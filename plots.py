@@ -22,7 +22,6 @@ def showMetricPlots(crossValScoresByMetric, metrics=None):
         plt.xlabel("number of categories")
         plt.ylabel("average " + metric)
         plt.show()
-        #print(json.dumps(crossValScoresByN, indent=4))
 
 
 def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=None, title="Comparació heurístiques, probabilistic approach = false"):
@@ -46,7 +45,6 @@ def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=No
         plt.ylabel("Average " + metric)
         plt.legend(legend)
         plt.show()
-        #print(json.dumps(crossValScoresByN, indent=4))
 
 
 def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Comparació heurístiques, probabilistic approach = false"):
@@ -61,9 +59,6 @@ def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Compar
             for k in cvs.keys():
                 scores.append(statistics.mean(cvs[k]))
 
-
-
-
         xlabels = legend
         yvalues = scores
 
@@ -75,9 +70,6 @@ def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Compar
         plt.xticks(x_pos, xlabels)
         plt.ylim([0.6, 0.9])
         plt.show()
-
-        #print(json.dumps(crossValScoresByN, indent=4))
-
 
 
 def recursive_print_dict( d, indent = 0 ):
