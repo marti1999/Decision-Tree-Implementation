@@ -553,26 +553,27 @@ def main():
     df = deleteRowsByIndex(df, outliersToDrop)
 
     # UN SOL MODEL PER FER PROVES
-    test1Model(df)
+    # test1Model(df)
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
-    testCrossvalidationHeuristics(df, ['gini', 'id3'])
+    testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4,6,7,8,7,9,10,11,12,13])
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(df)
     # compareWithSklearn(df)
 
 
-def testCrossvalidationHeuristics(df, heuristics, proba=False):
+def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11], proba=False):
 
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScores = []
 
     for heuristic in heuristics:
+        print(heuristic)
         crossValScoresByMetric = {}
         for metric in metrics:
             crossValScoresByMetric[metric] = {}
-        for n in [4, 6]:
+        for n in intervals:
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
             cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba), dfDiscrete)
             # print(cv_results)
