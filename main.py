@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 
 from preprocessing import fixMissingAndWrongValues, detectOutliers, deleteRowsByIndex
-from testing import testCrossvalidationHeuristics, testCrossvalidationProbabilisticApproach, test1Model, \
-    crossValidationSklearn, compareWithSklearn, testCrossvalidationTwoWaySplit
+from testing import *
 
 eps = np.finfo(float).eps
 
@@ -47,7 +46,10 @@ def main():
     # testCrossvalidationProbabilisticApproach(df, [False, True], intervals=[4, 6], heuristic='gini')
 
     # PER PROVAR EL TWO-WAY SPLIT
-    testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20,30, 40, 50, 60, 70, 100, 200, 500], heuristic='gini')
+    # testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20,30, 40, 50, 60, 70, 100, 200, 500], heuristic='gini')
+
+    # PER COMPARAR TEMPS D'EXECUCIÓ INTERVALS VS 2-WAY SPLIT
+    # testExecutionTime2waysplitVSintervals(df, test_size=0.5, proba=True)
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(df)

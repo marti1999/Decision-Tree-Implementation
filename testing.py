@@ -1,4 +1,5 @@
 import pprint
+import time
 
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, KFold, cross_validate
@@ -11,8 +12,8 @@ from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot
 from modelSelection import crossValidation
 
 
-def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11,12,13], proba=False, n_splits=10):
-
+def testCrossvalidationHeuristics(df, heuristics, intervals=[4, 6, 7, 8, 7, 9, 10, 11, 12, 13], proba=False,
+                                  n_splits=10):
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScores = []
 
@@ -23,17 +24,18 @@ def testCrossvalidationHeuristics(df, heuristics, intervals=[4,6,7,8,7,9,10,11,1
             crossValScoresByMetric[metric] = {}
         for n in intervals:
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba), dfDiscrete, n_splits=n_splits)
+            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba),
+                                         dfDiscrete, n_splits=n_splits)
             # print(cv_results)
             for metric in metrics:
                 crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
 
-    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = heuristics)
+    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend=heuristics)
 
 
-def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=[4,6,7,8,7,9,10,11,12,13], heuristic='gini'):
-
+def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=[4, 6, 7, 8, 7, 9, 10, 11, 12, 13],
+                                             heuristic='gini'):
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScores = []
 
@@ -44,17 +46,18 @@ def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=
             crossValScoresByMetric[metric] = {}
         for n in intervals:
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
-            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=prob), dfDiscrete)
+            cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=prob),
+                                         dfDiscrete)
             # print(cv_results)
             for metric in metrics:
                 crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
 
-    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = proba,title='Probabilistic approach, heuristica = ' + heuristic)
+    showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend=proba,
+                                 title='Probabilistic approach, heuristica = ' + heuristic)
 
 
 def testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20, 50, 500], heuristic='gini'):
-
     metrics = ('accuracy', 'precision', 'recall', 'f1Score')
     crossValScores = []
 
@@ -70,7 +73,43 @@ def testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20, 50, 500], heuristic
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
 
-    showBarPlot(crossValScores, metrics=list(metrics), legend=intervals, title='2-way partitioning, heuristica = ' + heuristic)
+    showBarPlot(crossValScores, metrics=list(metrics), legend=intervals,
+                title='2-way partitioning, heuristica = ' + heuristic)
+
+
+def testExecutionTime2waysplitVSintervals(df, heuristic='gini', n_splits=10, proba=False, test_size=0.2):
+    dfInterrvals10 = createDiscreteValues(df, categoriesNumber=4)
+    dfInterrvals30 = createDiscreteValues(df, categoriesNumber=30)
+    df2waysplit = TwoWaySplit(df, initialIntervals=500)
+
+    train, test = train_test_split(dfInterrvals10, test_size=test_size, random_state=0)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=proba)
+    startTime = time.time()
+    decisionTree.fit(dfInterrvals10)
+    print("Temps Fit 4 intervals en segons: ", time.time() - startTime)
+    startTime = time.time()
+    decisionTree.predict(test)
+    print("Temps Predict 4 intervals en segons: ", time.time() - startTime)
+
+    train, test = train_test_split(dfInterrvals30, test_size=test_size, random_state=0)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=proba)
+    startTime = time.time()
+    decisionTree.fit(dfInterrvals30)
+    print("Temps Fit 30 intervals en segons: ", time.time() - startTime)
+    startTime = time.time()
+    decisionTree.predict(test)
+    print("Temps Predict 30 intervals en segons: ", time.time() - startTime)
+
+    train, test = train_test_split(df2waysplit, test_size=test_size, random_state=0)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=proba)
+    startTime = time.time()
+    decisionTree.fit(df2waysplit)
+    print("Temps Fit 2-way split en segons: ", time.time() - startTime)
+    startTime = time.time()
+    decisionTree.predict(test)
+    print("Temps Predict 2-way split en segons: ", time.time() - startTime)
+
+
 
 
 def test1Model(df):
