@@ -8,7 +8,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 from arbredecisio import DecisionTree
 from preprocessing import createDiscreteValues, TwoWaySplit
-from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix
+from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix, showBarPlot2
 from modelSelection import crossValidation
 from randomForest import RandomForest
 
@@ -110,9 +110,6 @@ def testExecutionTime2waysplitVSintervals(df, heuristic='gini', n_splits=10, pro
     decisionTree.predict(test)
     print("Temps Predict 2-way split en segons: ", time.time() - startTime)
 
-
-
-
 def test1Model(df):
     # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
     dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
@@ -142,6 +139,33 @@ def testRandomForest(df):
     y_test = test['target'].tolist()
     plotConfusionMatrix(y_pred, y_test)
     print(classification_report(y_test, y_pred))
+
+def testCrossValRandomForestVSDecisionTree(df, n_trees = 5, heuristic='gini', proba=True):
+    metrics = ('accuracy', 'precision', 'recall', 'f1_micro')
+    crossValScores = []
+
+    # tot i tenir el nostre kfold i cross validation, utilitzem el de sklearn per assegurar-nos que ambdos models tenen el mateix split
+    kf = KFold(n_splits=10, random_state=None, shuffle=True)
+    crossValScoresByMetric = {}
+    for metric in metrics:
+        crossValScoresByMetric[metric] = {}
+
+    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
+    X = dfDiscrete
+    y = dfDiscrete["target"]
+
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
+    rf = RandomForest(n_trees=n_trees, heuristic='gini', enableProbabilisticApproach=True)
+    rf2 = RandomForest(n_trees=n_trees*2, heuristic='gini', enableProbabilisticApproach=True)
+
+
+    crossValScores.append(cross_validate(decisionTree, X, y, cv=kf, scoring=metrics))
+    crossValScores.append(cross_validate(rf, X, y, cv=kf, scoring=metrics))
+    crossValScores.append(cross_validate(rf2, X, y, cv=kf, scoring=metrics))
+
+
+    showBarPlot2(crossValScores, list(metrics), legend=['DT', 'RF '+str(n_trees)+' trees', 'RF '+str(n_trees*2)+' trees'], title='Decision Tree VS Random Forest', )
+
 
 def crossValidationSklearn(df):
     kf = KFold(n_splits=10, random_state=None, shuffle=True)

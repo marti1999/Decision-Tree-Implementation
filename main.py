@@ -19,7 +19,7 @@ def main():
 
 
     # UN SOL MODEL PER FER PROVES
-    test1Model(copy.deepcopy(df))
+    # test1Model(copy.deepcopy(df))
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
     # testCrossvalidationHeuristics(copy.deepcopy(df), ['id3', 'c45', 'gini'], intervals=[4, 6, 7, 8, 9, 10, 11])
@@ -34,7 +34,10 @@ def main():
     # testExecutionTime2waysplitVSintervals(copy.deepcopy(df), test_size=0.5, proba=True)
 
     # PER PROVAR EL RANDOM FOREST
-    testRandomForest(copy.deepcopy(df))
+    # testRandomForest(copy.deepcopy(df))
+
+    # PER COMPARAR DECISION TREE VS RANDOM FOREST
+    testCrossValRandomForestVSDecisionTree(df, n_trees=5)
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
     # crossValidationSklearn(copy.deepcopy(df))

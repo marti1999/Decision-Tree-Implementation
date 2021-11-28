@@ -71,6 +71,23 @@ def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Compar
         plt.ylim([0.6, 0.9])
         plt.show()
 
+def showBarPlot2(crossValScores, metrics=None, legend=None, title="Comparació heurístiques, probabilistic approach = false"):
+    for metric in metrics:
+
+        scores = []
+        for m in crossValScores:
+            scores.append(statistics.mean(m['test_'+metric]))
+
+        xlabels = legend
+        yvalues = scores
+
+        x_pos = [i for i, _ in enumerate(xlabels)]
+        plt.bar(x_pos, yvalues)
+        plt.ylabel(metric)
+        plt.title(title)
+        plt.xticks(x_pos, xlabels)
+        plt.ylim([0.6, 0.9])
+        plt.show()
 
 def recursive_print_dict( d, indent = 0 ):
     for k, v in d.items():
