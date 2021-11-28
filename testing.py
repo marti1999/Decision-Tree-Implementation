@@ -6,8 +6,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from arbredecisio import DecisionTree
-from preprocessing import createDiscreteValues
-from plots import showMetricPlots, showMetricTwoHeuristicsPlots
+from preprocessing import createDiscreteValues, TwoWaySplit
+from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot
 from modelSelection import crossValidation
 
 
@@ -51,6 +51,26 @@ def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=
         crossValScores.append(crossValScoresByMetric)
 
     showMetricTwoHeuristicsPlots(crossValScores, metrics=list(metrics), legend = proba,title='Probabilistic approach, heuristica = ' + heuristic)
+
+
+def testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20, 50, 500], heuristic='gini'):
+
+    metrics = ('accuracy', 'precision', 'recall', 'f1Score')
+    crossValScores = []
+
+    for n in intervals:
+        print(n)
+        crossValScoresByMetric = {}
+        for metric in metrics:
+            crossValScoresByMetric[metric] = {}
+        dfDiscrete = TwoWaySplit(df, attributes=['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=n)
+        cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=True), dfDiscrete)
+        print(cv_results)
+        for metric in metrics:
+            crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
+        crossValScores.append(crossValScoresByMetric)
+
+    showBarPlot(crossValScores, metrics=list(metrics), legend=intervals, title='2-way partitioning, heuristica = ' + heuristic)
 
 
 def test1Model(df):

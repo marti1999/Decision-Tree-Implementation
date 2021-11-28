@@ -3,7 +3,7 @@ import numpy as np
 
 from preprocessing import fixMissingAndWrongValues, detectOutliers, deleteRowsByIndex
 from testing import testCrossvalidationHeuristics, testCrossvalidationProbabilisticApproach, test1Model, \
-    crossValidationSklearn, compareWithSklearn
+    crossValidationSklearn, compareWithSklearn, testCrossvalidationTwoWaySplit
 
 eps = np.finfo(float).eps
 
@@ -36,18 +36,22 @@ def main():
     # TODO en comptes d'esborrar les mostres outliers, donar un nou valor a l'atribut en qüestió
     df = deleteRowsByIndex(df, outliersToDrop)
 
+
     # UN SOL MODEL PER FER PROVES
-    test1Model(df)
+    # test1Model(df)
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
-    testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4, 6])
+    # testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4, 6])
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I PROBABILISTIC APPROACH
-    testCrossvalidationProbabilisticApproach(df, [False, True], intervals=[4, 6], heuristic='gini')
+    # testCrossvalidationProbabilisticApproach(df, [False, True], intervals=[4, 6], heuristic='gini')
+
+    # PER PROVAR EL TWO-WAY SPLIT
+    testCrossvalidationTwoWaySplit(df, intervals=[5, 10], heuristic='gini')
 
     # IMPLEMENTACIONS AMB SKLEARN, PER FER COMPARACIONS
-    crossValidationSklearn(df)
-    compareWithSklearn(df)
+    # crossValidationSklearn(df)
+    # compareWithSklearn(df)
 
 
 if __name__ == "__main__":

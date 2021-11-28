@@ -102,7 +102,7 @@ def deleteRowsByIndex(df, indexs):
     return df
 
 
-def TwoWaySplit(df, attributes, initialIntervals = 11):
+def TwoWaySplit(df, attributes = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals = 11):
 
 
     for attribute in attributes:

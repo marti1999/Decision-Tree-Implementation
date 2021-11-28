@@ -49,6 +49,31 @@ def showMetricTwoHeuristicsPlots(crossValScoresByMetric, metrics=None, legend=No
         #print(json.dumps(crossValScoresByN, indent=4))
 
 
+def showBarPlot(crossValScoresByMetric, metrics=None, legend=None, title="Comparació heurístiques, probabilistic approach = false"):
+    for metric in metrics:
+
+        crossValScoresByN = []
+        for cvs in crossValScoresByMetric:
+            crossValScoresByN.append(cvs[metric])
+
+        scores = []
+        for cvs in crossValScoresByN:
+            for k in cvs.keys():
+                scores.append(statistics.mean(cvs[k]))
+
+
+        fig = plt.figure()
+        ax = fig.add_axes([0,0,1,1])
+        xlabels = legend
+        yvalues = scores
+        ax.bar(xlabels, yvalues)
+        # plt.title(title)
+        plt.show()
+
+        #print(json.dumps(crossValScoresByN, indent=4))
+
+
+
 def recursive_print_dict( d, indent = 0 ):
     for k, v in d.items():
         if isinstance(v, dict):
