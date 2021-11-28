@@ -19,15 +19,15 @@ def testCrossvalidationHeuristics(df, heuristics, intervals=[4, 6, 7, 8, 7, 9, 1
     crossValScores = []
 
     for heuristic in heuristics:
-        print(heuristic)
+        print("   ", heuristic)
         crossValScoresByMetric = {}
         for metric in metrics:
             crossValScoresByMetric[metric] = {}
         for n in intervals:
+            print("    intervals: ", n)
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
             cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=proba),
                                          dfDiscrete, n_splits=n_splits)
-            # print(cv_results)
             for metric in metrics:
                 crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
@@ -41,15 +41,15 @@ def testCrossvalidationProbabilisticApproach(df, proba=[False, True], intervals=
     crossValScores = []
 
     for prob in proba:
-        print(heuristic)
+        print("   ",proba)
         crossValScoresByMetric = {}
         for metric in metrics:
             crossValScoresByMetric[metric] = {}
         for n in intervals:
+            print("    intervals: ", n)
             dfDiscrete = createDiscreteValues(df, categoriesNumber=n)
             cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=prob),
                                          dfDiscrete)
-            # print(cv_results)
             for metric in metrics:
                 crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
@@ -63,13 +63,12 @@ def testCrossvalidationTwoWaySplit(df, intervals=[5, 10, 20, 50, 500], heuristic
     crossValScores = []
 
     for n in intervals:
-        print(n)
+        print("   intervals inicials: ", n)
         crossValScoresByMetric = {}
         for metric in metrics:
             crossValScoresByMetric[metric] = {}
         dfDiscrete = TwoWaySplit(df, attributes=['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=n)
         cv_results = crossValidation(DecisionTree(heuristic=heuristic, enableProbabilisticApproach=True), dfDiscrete)
-        print(cv_results)
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
         crossValScores.append(crossValScoresByMetric)
@@ -180,7 +179,6 @@ def crossValidationSklearn(df):
         X = dfDiscrete
         y = dfDiscrete["target"]
         cv_results = cross_validate(decisionTree, X, y, cv=kf, scoring=metrics)
-        print(cv_results)
 
         for metric in metrics:
             crossValScoresByMetric[metric][n] = cv_results["test_" + metric]
