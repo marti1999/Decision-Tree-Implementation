@@ -154,9 +154,9 @@ def testCrossValRandomForestVSDecisionTree(df, n_trees = 5, heuristic='gini', pr
     X = dfDiscrete
     y = dfDiscrete["target"]
 
-    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=True)
-    rf = RandomForest(n_trees=n_trees, heuristic='gini', enableProbabilisticApproach=True)
-    rf2 = RandomForest(n_trees=n_trees*2, heuristic='gini', enableProbabilisticApproach=True)
+    decisionTree = DecisionTree(heuristic='gini', enableProbabilisticApproach=False)
+    rf = RandomForest(n_trees=n_trees, heuristic='gini', enableProbabilisticApproach=proba)
+    rf2 = RandomForest(n_trees=n_trees*2, heuristic='gini', enableProbabilisticApproach=proba)
 
 
     crossValScores.append(cross_validate(decisionTree, X, y, cv=kf, scoring=metrics))
