@@ -1,14 +1,14 @@
 import pprint
 import time
 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split, KFold, cross_validate
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from arbredecisio import DecisionTree
 from preprocessing import createDiscreteValues, TwoWaySplit
-from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot
+from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix
 from modelSelection import crossValidation
 
 
@@ -114,8 +114,8 @@ def testExecutionTime2waysplitVSintervals(df, heuristic='gini', n_splits=10, pro
 
 def test1Model(df):
     # UN SOL MODEL PER FER PROVES
-    dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
-    # dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
+    # dfDiscrete = createDiscreteValues(df, categoriesNumber=7)
+    dfDiscrete = TwoWaySplit(df, ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'], initialIntervals=15)
     # train, test = trainTestSplit(dfDiscrete, trainSize=0.8)
     train, test = train_test_split(dfDiscrete, test_size=0.2,
                                    random_state=0)  # per si es necessita tenir sempre el mateix split
@@ -127,6 +127,11 @@ def test1Model(df):
     print(y_pred)
     print("Accuracy: ", accuracy_score(y_test, y_pred))
     pprint.pprint(decisionTree.tree)
+
+
+    plotConfusionMatrix(y_pred, y_test)
+    print(classification_report(y_test, y_pred, labels=[0,1]))
+
 
 
 def crossValidationSklearn(df):
@@ -160,5 +165,5 @@ def compareWithSklearn(df):
     dt = DecisionTreeClassifier(criterion='entropy', random_state=0, max_depth=6)
     dt.fit(X_train, y_train)
     dt_predicted = dt.predict(X_test)
-    dt_acc_score = accuracy_score(y_test, dt_predicted)
-    print("Accuracy of DecisionTreeClassifier:", dt_acc_score, '\n')
+    plotConfusionMatrix(dt_predicted, y_test)
+    print(classification_report(y_test, dt_predicted, labels=[0,1]))

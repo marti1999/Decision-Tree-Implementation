@@ -92,3 +92,14 @@ def recursive_print_dict( d, indent = 0 ):
 def plotNull(df):
     sns.heatmap(df.isnull(), yticklabels=False, cbar=False, cmap='viridis')
     plt.show()
+
+
+def plotConfusionMatrix(y_pred, y_test):
+    import seaborn as sns
+    import pandas as pd
+    from sklearn.metrics import confusion_matrix
+    cm = confusion_matrix(y_test, y_pred, normalize='true')
+    f = sns.heatmap(cm, annot=True, fmt='f')
+    plt.xlabel('Actual')
+    plt.ylabel('Predicted')
+    plt.show()

@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 import numpy as np
 
@@ -37,7 +39,7 @@ def main():
 
 
     # UN SOL MODEL PER FER PROVES
-    # test1Model(df)
+    # test1Model(copy.deepcopy(df))
 
     # PER PROVAR EL NOSTRE CROSS VALIDATION I DIFERENTS HEURÍSTIQUES
     # testCrossvalidationHeuristics(df, ['id3', 'c45', 'gini'], intervals=[4, 6])
