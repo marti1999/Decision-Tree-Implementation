@@ -112,3 +112,42 @@ def plotConfusionMatrix(y_pred, y_test):
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
     plt.show()
+
+
+def treePrint(tree, level=0, prevLevel=[], isLastItem=False):
+    def getPrefix(level, prevLevel=[], isLastItem=False):
+        while len(prevLevel) < level + 1:
+            prevLevel.append(False)
+        prevLevel[level] = isLastItem
+        prefix = ""
+        for i in range(level):
+            if prevLevel[i]:
+                prefix = prefix + "   "
+            else:
+                prefix = prefix + "|  "
+        if isLastItem:
+            prefix += "└── "
+        else:
+            prefix += "├── "
+        return prefix
+
+    if isinstance(tree, dict):
+        i = 0
+        len_ = len(tree)
+        # print(f"len:{len_}")
+        for k, v in tree.items():
+            i += 1
+            prefix = getPrefix(level, prevLevel, i == len_)
+            print(f"{prefix}{k}")
+            if not isinstance(v, list) and not not isinstance(v, dict):
+                isLastItem = True
+            treePrint(v, level + 1, prevLevel, isLastItem)
+    elif isinstance(tree, list):
+        i = 0
+        len_ = len(tree)
+        for x in tree:
+            i += 1
+            treePrint(x, level, prevLevel, i == len_)
+    else:
+        prefix = getPrefix(level, prevLevel, isLastItem)
+        print(f"{prefix}{tree}")

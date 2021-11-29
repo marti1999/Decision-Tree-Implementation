@@ -8,7 +8,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 from arbredecisio import DecisionTree
 from preprocessing import createDiscreteValues, TwoWaySplit
-from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix, showBarPlot2
+from plots import showMetricPlots, showMetricTwoHeuristicsPlots, showBarPlot, plotConfusionMatrix, showBarPlot2, treePrint
 from modelSelection import crossValidation
 from randomForest import RandomForest
 
@@ -122,8 +122,8 @@ def test1Model(df):
     print(y_test)
     print(y_pred)
     print("Accuracy: ", accuracy_score(y_test, y_pred))
-    pprint.pprint(decisionTree.tree)
-
+    # pprint.pprint(decisionTree.tree)
+    treePrint(decisionTree.tree)
 
     plotConfusionMatrix(y_pred, y_test)
     print(classification_report(y_test, y_pred, labels=[0,1]))
