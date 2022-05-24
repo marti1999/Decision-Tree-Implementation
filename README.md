@@ -19,6 +19,6 @@ python3 -m pip install -r requirements.txt
 
 Run program
 ```bash
-python3 ./src/main.py
+python ./src/main.py
 ```
 By default, the program runs a batch of different tests to check the performance using multiple options. The file main.py can be easily modified and comment the tests that are not to be run.
